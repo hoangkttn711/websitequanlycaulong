@@ -329,7 +329,10 @@ function buildIndex() {
               <h3 class="text-sm font-black text-slate-900">Giỏ Hàng Của Bạn</h3>
               <p id="cust-cart-summary-text" class="text-xs text-slate-500">Chưa có món nào được chọn</p>
             </div>
-            <span id="cust-cart-total-amount" class="text-lg font-black text-emerald-600">0đ</span>
+            <div class="flex items-center gap-2">
+              <span id="cust-cart-total-amount" class="text-lg font-black text-emerald-600">0đ</span>
+              <button type="button" id="btn-clear-cust-cart" class="text-[11px] text-slate-400 hover:text-rose-500 hover:underline cursor-pointer" title="Làm trống giỏ hàng">Làm trống</button>
+            </div>
           </div>
 
           <div id="cust-cart-items-list" class="divide-y divide-slate-100 max-h-52 overflow-y-auto custom-scrollbar text-xs"></div>

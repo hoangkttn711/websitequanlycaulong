@@ -1,6 +1,6 @@
 
     (function () {
-      const STORAGE_KEY = 'smashcourt_pro_state_v3';
+      const STORAGE_KEY = 'smashcourt_pro_state_v4';
 
       // Time & Pricing Helpers:
       // Rule 1: 17:00 to 21:00 is 80,000đ/h; all other hours are 60,000đ/h.
@@ -159,13 +159,21 @@
       let categoryChartInstance = null;
 
       function loadState() {
+        // Dọn sạch các phiên bản cache cũ khỏi localStorage của trình duyệt
+        try {
+          ['smashcourt_pro_state', 'smashcourt_pro_state_v1', 'smashcourt_pro_state_v2', 'smashcourt_pro_state_v3'].forEach(k => {
+            localStorage.removeItem(k);
+          });
+        } catch (e) {}
+
         const init = getInitialState();
         try {
           const saved = localStorage.getItem(STORAGE_KEY);
           if (saved) {
             const parsed = JSON.parse(saved);
             const merged = Object.assign({}, init, parsed);
-            // Xóa sạch các đơn mẫu cũ (BK-101, BK-102...) khỏi localStorage trình duyệt
+
+            // Xóa sạch các đơn mẫu cũ (BK-101, BK-102...)
             const mockIds = ['BK-101', 'BK-102', 'BK-103', 'BK-104', 'BK-106', 'BK-107'];
             if (Array.isArray(merged.bookings)) {
               merged.bookings = merged.bookings.filter(b => !mockIds.includes(b.id));
@@ -174,25 +182,28 @@
               merged.invoices = merged.invoices.filter(i => !i.id || !i.id.startsWith('HD-2610-0'));
             }
 
-
             // Ensure essential arrays always exist
             if (!Array.isArray(merged.courts) || merged.courts.length === 0) merged.courts = init.courts;
             if (!Array.isArray(merged.products) || merged.products.length === 0) merged.products = init.products;
             if (!Array.isArray(merged.bookings)) merged.bookings = init.bookings;
             if (!Array.isArray(merged.invoices)) merged.invoices = init.invoices;
-            if (!Array.isArray(merged.customerCart)) merged.customerCart = init.customerCart;
-            if (!Array.isArray(merged.posCart)) merged.posCart = init.posCart;
+
+            // TUYỆT ĐỐI KHÔNG TỰ ĐỘNG CHỌN SẢN PHẨM / GIỎ HÀNG / KHUNG GIỜ KHI MỞ WEB
+            // Giỏ hàng và danh sách chọn trước luôn phải TRỐNG 100% để khách tự chọn
+            merged.customerCart = [];
+            merged.customerAddons = {};
+            merged.customerCourtSlots = {};
+            merged.customerSelectedSlots = [];
+            merged.customerSelectedCourtId = null;
+            merged.customerStartTime = '';
+            merged.customerEndTime = '';
+            merged.posCart = [];
 
             if (!merged.matrixSlotDuration || merged.matrixSlotDuration === 60) {
               merged.matrixSlotDuration = 30;
             }
             if (!merged.customerDay) merged.customerDay = 'today';
 
-            // Tắt mặc định tự động chọn khung giờ khi mở web (để người dùng tự chọn)
-            merged.customerCourtSlots = {};
-            if (!merged.customerAddons || typeof merged.customerAddons !== 'object') {
-              merged.customerAddons = {};
-            }
             // Đồng bộ giá mới theo yêu cầu: Ống Thành Công 77 340k, Cầu lẻ Thành Công 77 30k, Revive 12k
             if (Array.isArray(merged.products)) {
               const p1 = merged.products.find(p => p.id === 'p1');
@@ -202,10 +213,6 @@
               const p11 = merged.products.find(p => p.id === 'p11');
               if (p11) { p11.name = 'Ống cầu Thành Công 77'; p11.price = 340000; }
             }
-            merged.customerSelectedSlots = [];
-            merged.customerSelectedCourtId = null;
-            merged.customerStartTime = '';
-            merged.customerEndTime = '';
 
             return merged;
           }
@@ -2802,6 +2809,18 @@ function updateDynamicDateLabels() {
       });
 
       // Customer Shop Order Submit
+      
+      // Nút làm trống giỏ hàng nhanh cho Khách
+      const btnClearCustCart = document.getElementById('btn-clear-cust-cart');
+      if (btnClearCustCart) {
+        btnClearCustCart.addEventListener('click', function () {
+          state.customerCart = [];
+          saveState();
+          renderCustomerShop();
+          showToast('Đã làm trống giỏ hàng!');
+        });
+      }
+
       document.getElementById('btn-cust-submit-order').addEventListener('click', function () {
         if (!state.customerCart || state.customerCart.length === 0) {
           showToast('Bạn chưa chọn sản phẩm nào trong giỏ!', 'warn');

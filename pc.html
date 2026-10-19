@@ -4105,7 +4105,7 @@ function updateDynamicDateLabels() {
         });
       }
 
-      async function syncFromSupabase() {
+      async function syncFromSupabase(isSilent) {
         if (!supabaseClient) {
           updateSupabaseBadge(false);
           return;
@@ -4118,22 +4118,36 @@ function updateDynamicDateLabels() {
             supabaseClient.from('invoices').select('*').order('created_at', { ascending: false })
           ]);
 
-          let hasUpdates = false;
+          let hasChanges = false;
+
+          if (bksRes.data) {
+            const mappedBks = bksRes.data.map(mapBookingFromDb);
+            const currentIds = (state.bookings || []).map(b => b.id).sort().join(',');
+            const newIds = mappedBks.map(b => b.id).sort().join(',');
+            if (currentIds !== newIds || JSON.stringify(state.bookings) !== JSON.stringify(mappedBks)) {
+              state.bookings = mappedBks;
+              hasChanges = true;
+            }
+          }
 
           if (courtsRes.data && courtsRes.data.length > 0) {
-            state.courts = courtsRes.data.map(mapCourtFromDb);
-            hasUpdates = true;
+            const mappedCourts = courtsRes.data.map(mapCourtFromDb);
+            if (JSON.stringify(state.courts) !== JSON.stringify(mappedCourts)) {
+              state.courts = mappedCourts;
+              hasChanges = true;
+            }
           }
+
           if (prodsRes.data && prodsRes.data.length > 0) {
-            state.products = prodsRes.data.map(mapProductFromDb);
-            hasUpdates = true;
+            const mappedProds = prodsRes.data.map(mapProductFromDb);
+            if (JSON.stringify(state.products) !== JSON.stringify(mappedProds)) {
+              state.products = mappedProds;
+              hasChanges = true;
+            }
           }
-          if (bksRes.data) {
-            state.bookings = bksRes.data.map(mapBookingFromDb);
-            hasUpdates = true;
-          }
+
           if (invsRes.data && invsRes.data.length > 0) {
-            state.invoices = invsRes.data.map(i => ({
+            const mappedInvs = invsRes.data.map(i => ({
               id: i.id,
               time: i.time,
               type: i.type,
@@ -4146,16 +4160,20 @@ function updateDynamicDateLabels() {
               paymentMethod: i.payment_method || i.paymentMethod || 'Tiền mặt',
               items: Array.isArray(i.items) ? i.items : []
             }));
-            hasUpdates = true;
+            if (JSON.stringify(state.invoices) !== JSON.stringify(mappedInvs)) {
+              state.invoices = mappedInvs;
+              hasChanges = true;
+            }
           }
 
-          if (hasUpdates) {
+          if (hasChanges) {
             saveState();
             renderAll();
+            console.log('🔄 Đã tự động cập nhật dữ liệu mới nhất từ Supabase!');
           }
           updateSupabaseBadge(true);
         } catch (err) {
-          console.warn('Supabase sync failed, using local storage:', err);
+          if (!isSilent) console.warn('Supabase sync warning:', err);
           updateSupabaseBadge(false);
         }
       }
@@ -4251,6 +4269,27 @@ function updateDynamicDateLabels() {
       if (typeof setupSupabaseRealtime === 'function') {
         setupSupabaseRealtime();
       }
+
+      // ==================== ROCK-SOLID AUTO-SYNC POLLING (MỖI 3 GIÂY) ====================
+      // Đảm bảo dù mạng yếu hoặc WebSocket bị ngắt thì máy tính & điện thoại LUÔN đồng bộ 100%
+      setInterval(function () {
+        if (typeof syncFromSupabase === 'function' && document.visibilityState !== 'hidden') {
+          syncFromSupabase(true);
+        }
+      }, 3000);
+
+      // Làm tươi ngay lập tức khi người dùng bấm quay lại tab
+      window.addEventListener('focus', function () {
+        if (typeof syncFromSupabase === 'function') {
+          syncFromSupabase(true);
+        }
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && typeof syncFromSupabase === 'function') {
+          syncFromSupabase(true);
+        }
+      });
     })();
   
 </script>

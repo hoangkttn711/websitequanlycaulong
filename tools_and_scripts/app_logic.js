@@ -571,7 +571,7 @@
       }
 
       // ==================== RENDER VIEW 3: SCHEDULE TIMELINE & BOOKINGS ====================
-            function renderSchedule() {
+                  function renderSchedule() {
         const aloboSlots = getAloboSlots(30);
         const isToday = (!state.customerDay || state.customerDay === 'today');
         const currentMin = getCurrentMinutes();
@@ -581,7 +581,7 @@
         const adminHeader = document.getElementById('admin-alobo-matrix-header');
         if (adminHeader) {
           adminHeader.innerHTML = `
-            <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0"></th>
+            <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0 text-center font-black text-xs text-[#0e362e] uppercase tracking-wider">SÂN</th>
             ${aloboSlots.map((slot, idx) => {
               const slotStartM = timeToMinutes(slot.start);
               const isColPast = isToday && (slotStartM < currentMin);
@@ -627,10 +627,10 @@
 
               if (booking) {
                 // Admin nhìn vào là thấy NGAY AI ĐẶT!
-                let bgStyle = 'bg-amber-100 hover:bg-amber-200 border-r border-amber-300 text-amber-950';
+                let bgStyle = 'bg-amber-100 hover:bg-amber-200 border-r border-amber-300 text-amber-950 font-bold';
                 let tagText = booking.deposit ? formatVND(booking.deposit) : 'Đã đặt';
                 if (booking.status === 'checked_in' || isCourtActive) {
-                  bgStyle = 'bg-emerald-600 hover:bg-emerald-700 border-r border-emerald-500 text-white';
+                  bgStyle = 'bg-emerald-600 hover:bg-emerald-700 border-r border-emerald-500 text-white font-bold';
                   tagText = 'Đang đánh';
                 } else if (booking.status === 'completed') {
                   bgStyle = 'bg-slate-200 hover:bg-slate-300 text-slate-700';
@@ -639,7 +639,7 @@
 
                 return `
                   <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
-                    <button type="button" data-admin-booking-id="${booking.id}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="Khách: ${booking.customer} • SĐT: ${booking.phone || 'Chưa có'} • ${booking.slot} • Cọc: ${formatVND(booking.deposit)} • Bấm để xử lý">
+                    <button type="button" data-admin-booking-id="${booking.id}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="Khách: ${booking.customer} • SĐT: ${booking.phone || 'Chưa có'} • ${booking.slot} • Cọc: ${formatVND(booking.deposit)} • Bấm để xem / nhận sân">
                       <span class="font-black text-[11px] truncate w-full px-0.5 text-center leading-tight">${booking.customer}</span>
                       <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${booking.phone ? booking.phone.slice(-4) : tagText}</span>
                     </button>
@@ -655,21 +655,15 @@
                 `;
               }
 
-              // Khung giờ quá khứ
-              const isPast = isToday && (slotStartMin < currentMin);
-              if (isPast) {
-                return `
-                  <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 bg-slate-100/60 p-0 text-center select-none">
-                    <span class="text-slate-300 font-bold text-[10px]">—</span>
-                  </td>
-                `;
-              }
-
               // Khung giờ còn trống -> Admin bấm vào để ĐẶT LỊCH NHANH cho khách!
+              const isPast = isToday && (slotStartMin < currentMin);
+              const cellBg = isPast ? 'bg-slate-50/70 hover:bg-emerald-50/70' : 'bg-white hover:bg-emerald-50/80';
+              const plusColor = isPast ? 'text-slate-300' : 'text-slate-400 group-hover:text-emerald-600';
+
               return `
-                <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 bg-white hover:bg-emerald-50/80 p-0 text-center select-none transition-colors">
-                  <button type="button" data-admin-quick-slot-court="${court.id}" data-admin-quick-slot-start="${slot.start}" data-admin-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center text-slate-300 hover:text-emerald-600 font-extrabold text-xs cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • Bấm để đặt)">
-                    <span class="opacity-0 hover:opacity-100 text-[11px] transition-opacity">+</span>
+                <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 ${cellBg} p-0 text-center select-none transition-colors group">
+                  <button type="button" data-admin-quick-slot-court="${court.id}" data-admin-quick-slot-start="${slot.start}" data-admin-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • Bấm để đặt)">
+                    <span class="${plusColor} text-[11px] font-bold transition-all transform group-hover:scale-125">+</span>
                   </button>
                 </td>
               `;
@@ -710,7 +704,8 @@
 
         // 3. Render Bookings List Table
         const bookingsBody = document.getElementById('bookings-table-body');
-        document.getElementById('booking-count-label').textContent = `${state.bookings.length} lịch đặt`;
+        const countLabel = document.getElementById('booking-count-label');
+        if (countLabel) countLabel.textContent = `${state.bookings.length} lịch đặt`;
         if (bookingsBody) {
           bookingsBody.innerHTML = state.bookings.map(b => {
             const court = state.courts.find(c => c.id === Number(b.courtId));
@@ -732,11 +727,11 @@
                 <td class="py-3 px-4 text-right">
                   <div class="flex items-center justify-end gap-1.5">
                     ${b.status !== 'checked_in' ? `
-                      <button type="button" data-checkin-booking="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs">
+                      <button type="button" data-checkin-booking="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs cursor-pointer">
                         Nhận Sân
                       </button>
                     ` : ''}
-                    <button type="button" data-cancel-booking="${b.id}" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 font-semibold text-[11px]">
+                    <button type="button" data-cancel-booking="${b.id}" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 font-semibold text-[11px] cursor-pointer">
                       Hủy
                     </button>
                   </div>

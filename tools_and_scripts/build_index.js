@@ -29,7 +29,64 @@ const scriptContent = fs.readFileSync('c:\\Quan ly san cau\\tools_and_scripts\\a
 
 // 4. Extract Admin Workspace
 const adminStart = orig.indexOf('<div id="admin-workspace"');
-const adminHTML = orig.slice(adminStart, modalActualStart);
+let adminHTML = orig.slice(adminStart, modalActualStart);
+
+// Cleanly replace old 6-column 2-hour timeline with Alobo 30-min matrix
+const oldTimelineStart = adminHTML.indexOf('<!-- Visual Court Timeline Grid -->');
+const oldTimelineEnd = adminHTML.indexOf('<!-- Bookings List Table -->');
+if (oldTimelineStart !== -1 && oldTimelineEnd !== -1) {
+  const newAdminTimelineGrid = `<!-- Visual Alobo-Style 30-min Admin Court Timeline Grid -->
+      <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-3 sm:space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5 sm:pb-3">
+          <div>
+            <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+              <span>📅 Ma Trận Lịch Đặt Sân Toàn Hệ Thống (05:00 - 23:00)</span>
+              <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">Hiển thị trực tiếp Tên Khách</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">Nhìn trực tiếp biết ai đặt khung giờ nào • Bấm vào ô trống để đặt nhanh • Bấm vào ô đã đặt để xem / nhận sân</p>
+          </div>
+          <div class="flex items-center gap-3 sm:gap-4 flex-wrap text-[11px] sm:text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-600"></span> Đang đánh</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-amber-400 border border-amber-500"></span> Đã đặt trước</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-white border border-slate-300"></span> Còn trống (Bấm để đặt)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-rose-100 border border-rose-300 text-rose-700 text-[10px] text-center font-bold">🔒</span> Bảo trì</span>
+          </div>
+        </div>
+
+        <!-- Scrollable Matrix Table -->
+        <div id="admin-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar rounded-xl border border-[#c4ded7] shadow-xs relative bg-white">
+          <table class="w-full text-left border-collapse min-w-[2160px]">
+            <thead class="bg-[#c0ebfb] text-[#0e362e] border-b border-[#cadfe8]">
+              <tr id="admin-alobo-matrix-header" class="bg-[#c0ebfb] text-[#0e362e] h-11">
+                <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0 text-center font-black text-xs text-[#0e362e] uppercase tracking-wider">SÂN</th>
+              </tr>
+            </thead>
+            <tbody id="admin-alobo-matrix-body" class="text-xs bg-white"></tbody>
+          </table>
+        </div>
+
+        <!-- Fast Time Jump Bar & Scroll Navigation for Admin -->
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[11px] font-bold text-slate-500">⚡ Xem nhanh:</span>
+            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌅 Sáng (5h)</button>
+            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">☀️ Trưa (12h)</button>
+            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌙 Tối vàng (17h)</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-slate-400 hidden sm:inline">🖱️ Lăn chuột / kéo rê để lướt</span>
+            <div class="flex items-center gap-1">
+              <button type="button" id="btn-admin-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
+              <button type="button" id="btn-admin-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  adminHTML = adminHTML.slice(0, oldTimelineStart) + newAdminTimelineGrid + '\n\n      ' + adminHTML.slice(oldTimelineEnd);
+}
+// Clean hardcoded date in heading
+adminHTML = adminHTML.replace('Lịch Đặt Sân Trong Ngày (Thứ Sáu, 16/10/2026)', 'Lịch Đặt Sân Toàn Hệ Thống');
+
 
 function buildIndex() {
   const topSwitch = `

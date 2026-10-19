@@ -1,6 +1,6 @@
 
     (function () {
-      const STORAGE_KEY = 'smashcourt_pro_state_v4';
+      const STORAGE_KEY = 'smashcourt_pro_state_v5';
 
       // Time & Pricing Helpers:
       // Rule 1: 17:00 to 21:00 is 80,000đ/h; all other hours are 60,000đ/h.
@@ -134,20 +134,20 @@
             { id: 4, name: 'Sân 4', zone: 'Sân thảm xám', matColor: 'grey', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] }
           ],
           products: [
-            { id: 'p1', name: 'Nước bù khoáng Revive', category: 'drink', unit: 'Chai', cost: 8000, price: 12000, stock: 64, soldToday: 18, icon: '🥤' },
-            { id: 'p2', name: 'Revive Chanh Muối', category: 'drink', unit: 'Chai', cost: 8500, price: 15000, stock: 42, soldToday: 14, icon: '🍋' },
-            { id: 'p3', name: 'Nước suối Aquafina 500ml', category: 'drink', unit: 'Chai', cost: 4500, price: 10000, stock: 85, soldToday: 22, icon: '💧' },
-            { id: 'p4', name: 'Bò húc RedBull Thái', category: 'drink', unit: 'Lon', cost: 12000, price: 20000, stock: 36, soldToday: 9, icon: '⚡' },
-            { id: 'p5', name: 'Điện giải Pocari Sweat', category: 'drink', unit: 'Chai', cost: 14000, price: 22000, stock: 28, soldToday: 7, icon: '🧊' },
-            { id: 'p6', name: 'Quấn cán VS chống trơn', category: 'grip', unit: 'Cái', cost: 9000, price: 20000, stock: 12, soldToday: 16, icon: '🎾' },
-            { id: 'p7', name: 'Quấn cán Yonex AC102EX', category: 'grip', unit: 'Cái', cost: 22000, price: 35000, stock: 19, soldToday: 8, icon: '🎗️' },
-            { id: 'p8', name: 'Quấn cán vải chống mồ hôi', category: 'grip', unit: 'Cuộn', cost: 13000, price: 25000, stock: 24, soldToday: 5, icon: '🧶' },
-            { id: 'p9', name: 'Ống cầu Hải Yến S90 (12 quả)', category: 'shuttle', unit: 'Ống', cost: 205000, price: 245000, stock: 9, soldToday: 6, icon: '🏸' },
-            { id: 'p10', name: 'Cầu lẻ Thành Công 77', category: 'shuttle', unit: 'Quả', cost: 22000, price: 30000, stock: 45, soldToday: 19, icon: '🪶' },
-            { id: 'p11', name: 'Ống cầu Thành Công 77', category: 'shuttle', unit: 'Ống', cost: 280000, price: 340000, stock: 18, soldToday: 4, icon: '🏆' },
-            { id: 'p12', name: 'Thuê vợt Carbon Yonex', category: 'rental', unit: 'Buổi', cost: 0, price: 30000, stock: 15, soldToday: 7, icon: '🎾' },
-            { id: 'p13', name: 'Thuê giày cầu lông chuyên dụng', category: 'rental', unit: 'Đôi', cost: 0, price: 30000, stock: 12, soldToday: 4, icon: '👟' },
-            { id: 'p14', name: 'Băng cổ tay chặn mồ hôi', category: 'grip', unit: 'Cái', cost: 15000, price: 30000, stock: 20, soldToday: 3, icon: '💪' }
+            { id: 'p1', name: 'Nước bù khoáng Revive', category: 'drink', unit: 'Chai', cost: 8000, price: 12000, stock: 64, soldToday: 0, icon: '🥤' },
+            { id: 'p2', name: 'Revive Chanh Muối', category: 'drink', unit: 'Chai', cost: 8500, price: 15000, stock: 42, soldToday: 0, icon: '🍋' },
+            { id: 'p3', name: 'Nước suối Aquafina 500ml', category: 'drink', unit: 'Chai', cost: 4500, price: 10000, stock: 85, soldToday: 0, icon: '💧' },
+            { id: 'p4', name: 'Bò húc RedBull Thái', category: 'drink', unit: 'Lon', cost: 12000, price: 20000, stock: 36, soldToday: 0, icon: '⚡' },
+            { id: 'p5', name: 'Điện giải Pocari Sweat', category: 'drink', unit: 'Chai', cost: 14000, price: 22000, stock: 28, soldToday: 0, icon: '🧊' },
+            { id: 'p6', name: 'Quấn cán VS chống trơn', category: 'grip', unit: 'Cái', cost: 9000, price: 20000, stock: 12, soldToday: 0, icon: '🎾' },
+            { id: 'p7', name: 'Quấn cán Yonex AC102EX', category: 'grip', unit: 'Cái', cost: 22000, price: 35000, stock: 19, soldToday: 0, icon: '🎗️' },
+            { id: 'p8', name: 'Quấn cán vải chống mồ hôi', category: 'grip', unit: 'Cuộn', cost: 13000, price: 25000, stock: 24, soldToday: 0, icon: '🧶' },
+            { id: 'p9', name: 'Ống cầu Hải Yến S90 (12 quả)', category: 'shuttle', unit: 'Ống', cost: 205000, price: 245000, stock: 9, soldToday: 0, icon: '🏸' },
+            { id: 'p10', name: 'Cầu lẻ Thành Công 77', category: 'shuttle', unit: 'Quả', cost: 22000, price: 30000, stock: 45, soldToday: 0, icon: '🪶' },
+            { id: 'p11', name: 'Ống cầu Thành Công 77', category: 'shuttle', unit: 'Ống', cost: 280000, price: 340000, stock: 18, soldToday: 0, icon: '🏆' },
+            { id: 'p12', name: 'Thuê vợt Carbon Yonex', category: 'rental', unit: 'Buổi', cost: 0, price: 30000, stock: 15, soldToday: 0, icon: '🎾' },
+            { id: 'p13', name: 'Thuê giày cầu lông chuyên dụng', category: 'rental', unit: 'Đôi', cost: 0, price: 30000, stock: 12, soldToday: 0, icon: '👟' },
+            { id: 'p14', name: 'Băng cổ tay chặn mồ hôi', category: 'grip', unit: 'Cái', cost: 15000, price: 30000, stock: 20, soldToday: 0, icon: '💪' }
           ],
           bookings: [],
           invoices: []
@@ -206,6 +206,7 @@
 
             // Đồng bộ giá mới theo yêu cầu: Ống Thành Công 77 340k, Cầu lẻ Thành Công 77 30k, Revive 12k
             if (Array.isArray(merged.products)) {
+              merged.products.forEach(p => { p.soldToday = 0; });
               const p1 = merged.products.find(p => p.id === 'p1');
               if (p1) p1.price = 12000;
               const p10 = merged.products.find(p => p.id === 'p10');
@@ -746,23 +747,37 @@
         const todayCourtRev = state.invoices.reduce((s, i) => s + (i.courtFee || 0), 0);
         const todayPosRev = state.invoices.reduce((s, i) => s + (i.posFee || 0), 0);
 
+        // Tạo 7 ngày gần nhất thực tế (từ 6 ngày trước đến hôm nay)
+        const labels = [];
+        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          if (i === 0) {
+            labels.push('Hôm nay');
+          } else {
+            labels.push(`${dayNames[d.getDay()]} (${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')})`);
+          }
+        }
+
         const ctxWeekly = document.getElementById('chart-weekly-revenue');
         if (ctxWeekly) {
           if (weeklyChartInstance) weeklyChartInstance.destroy();
           weeklyChartInstance = new Chart(ctxWeekly, {
             type: 'bar',
             data: {
-              labels: ['T7 (10/10)', 'CN (11/10)', 'T2 (12/10)', 'T3 (13/10)', 'T4 (14/10)', 'T5 (15/10)', 'Hôm nay'],
+              labels: labels,
               datasets: [
                 {
                   label: 'Tiền thuê sân',
-                  data: [2100000, 2450000, 1450000, 1600000, 1750000, 1850000, Math.max(todayCourtRev, 960000)],
+                  data: [0, 0, 0, 0, 0, 0, todayCourtRev],
                   backgroundColor: '#059669',
                   borderRadius: 6
                 },
                 {
                   label: 'Doanh thu POS (Nước, Cầu, Quấn cán)',
-                  data: [1450000, 1780000, 980000, 1120000, 1250000, 1340000, Math.max(todayPosRev, 785000)],
+                  data: [0, 0, 0, 0, 0, 0, todayPosRev],
                   backgroundColor: '#f59e0b',
                   borderRadius: 6
                 }
@@ -780,7 +795,7 @@
                   stacked: true,
                   ticks: {
                     callback: function (value) {
-                      return (value / 1000000).toFixed(1) + ' Tr';
+                      return (value / 1000).toLocaleString('vi-VN') + 'k';
                     }
                   }
                 }
@@ -788,6 +803,29 @@
             }
           });
         }
+
+        // Tính cơ cấu doanh thu thực tế từ invoices
+        const courtShare = todayCourtRev;
+        let shuttleShare = 0, drinkShare = 0, gripShare = 0, rentalShare = 0;
+        state.invoices.forEach(inv => {
+          (inv.items || []).forEach(it => {
+            const p = state.products.find(prod => prod.name === it.name);
+            const lineTotal = (it.price || 0) * (it.qty || 1);
+            if (p) {
+              if (p.category === 'shuttle') shuttleShare += lineTotal;
+              else if (p.category === 'drink') drinkShare += lineTotal;
+              else if (p.category === 'grip') gripShare += lineTotal;
+              else if (p.category === 'rental') rentalShare += lineTotal;
+            } else {
+              drinkShare += lineTotal;
+            }
+          });
+        });
+
+        const totalShares = courtShare + shuttleShare + drinkShare + gripShare + rentalShare;
+        const chartData = totalShares > 0
+          ? [courtShare, shuttleShare, drinkShare, gripShare, rentalShare]
+          : [0, 0, 0, 0, 0];
 
         const ctxCat = document.getElementById('chart-category-share');
         if (ctxCat) {
@@ -797,13 +835,7 @@
             data: {
               labels: ['Tiền thuê sân', 'Ống cầu & Quả cầu', 'Nước giải khát', 'Quấn cán & Phụ kiện', 'Thuê vợt & Giày'],
               datasets: [{
-                data: [
-                  Math.max(todayCourtRev, 460000),
-                  540000,
-                  320000,
-                  240000,
-                  120000
-                ],
+                data: chartData,
                 backgroundColor: ['#059669', '#f59e0b', '#0284c7', '#7c3aed', '#64748b'],
                 borderWidth: 2
               }]
@@ -2606,17 +2638,7 @@ function updateDynamicDateLabels() {
         showToast(`Đã thêm "${name}" vào danh mục POS & Kho!`);
       });
 
-      // Reset Demo Data
-      document.getElementById('btn-reset-demo').addEventListener('click', function () {
-        const wasAdmin = state.isAdminLoggedIn;
-        const mode = state.viewMode;
-        state = getInitialState();
-        state.isAdminLoggedIn = wasAdmin;
-        state.viewMode = mode;
-        saveState();
-        renderAll();
-        showToast('Đã khôi phục dữ liệu mẫu ban đầu!');
-      });
+      // Reset Demo Data removed
 
       // Live Clock
       setInterval(function () {

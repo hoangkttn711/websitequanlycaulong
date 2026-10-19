@@ -14,7 +14,15 @@ headHTML = headHTML.replace(/\.view-mode-phone-wrapper\s*\{[\s\S]*?\}/g, '');
 const modalStart = orig.indexOf('id="modal-cust-addon-picker"');
 const modalActualStart = orig.lastIndexOf('<div', modalStart);
 const scriptStart = orig.lastIndexOf('<script>');
-const modalsHTML = orig.slice(modalActualStart, scriptStart);
+let modalsHTML = orig.slice(modalActualStart, scriptStart);
+// Clean all prefilled demo inputs in modals
+modalsHTML = modalsHTML.replace('value="17:30 - 19:00"', '');
+modalsHTML = modalsHTML.replace('value="50000"', 'value="0" placeholder="0"');
+modalsHTML = modalsHTML.replace('value="Chai"', 'placeholder="Chai, Cái, Ống..."');
+modalsHTML = modalsHTML.replace('value="8000"', 'placeholder="0"');
+modalsHTML = modalsHTML.replace('value="15000"', 'placeholder="0"');
+modalsHTML = modalsHTML.replace('value="48"', 'placeholder="0"');
+
 
 // 3. Extract Script
 const scriptContent = fs.readFileSync('c:\\Quan ly san cau\\tools_and_scripts\\app_logic.js', 'utf8');
@@ -78,9 +86,7 @@ function buildMobile() {
             <button type="button" id="btn-toggle-customer-preview" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium">
               Xem Khách
             </button>
-            <button type="button" id="btn-reset-demo" class="hidden text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
-              Reset
-            </button>
+            
             <button type="button" id="btn-admin-logout" class="px-2 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-medium">
               Thoát
             </button>

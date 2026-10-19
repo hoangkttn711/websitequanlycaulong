@@ -14,7 +14,15 @@ headHTML = headHTML.replace(/\.view-mode-phone-wrapper\s*\{[\s\S]*?\}/g, '');
 const modalStart = orig.indexOf('id="modal-cust-addon-picker"');
 const modalActualStart = orig.lastIndexOf('<div', modalStart);
 const scriptStart = orig.lastIndexOf('<script>');
-const modalsHTML = orig.slice(modalActualStart, scriptStart);
+let modalsHTML = orig.slice(modalActualStart, scriptStart);
+// Clean all prefilled demo inputs in modals
+modalsHTML = modalsHTML.replace('value="17:30 - 19:00"', '');
+modalsHTML = modalsHTML.replace('value="50000"', 'value="0" placeholder="0"');
+modalsHTML = modalsHTML.replace('value="Chai"', 'placeholder="Chai, Cái, Ống..."');
+modalsHTML = modalsHTML.replace('value="8000"', 'placeholder="0"');
+modalsHTML = modalsHTML.replace('value="15000"', 'placeholder="0"');
+modalsHTML = modalsHTML.replace('value="48"', 'placeholder="0"');
+
 
 // 3. Extract Script
 const scriptContent = fs.readFileSync('c:\\Quan ly san cau\\tools_and_scripts\\app_logic.js', 'utf8');
@@ -91,9 +99,7 @@ function buildIndex() {
             <button type="button" id="btn-toggle-customer-preview" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition">
               Giao diện Khách
             </button>
-            <button type="button" id="btn-reset-demo" class="hidden sm:inline-block text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-700 transition" title="Khôi phục dữ liệu mẫu ban đầu">
-              Khôi phục mẫu
-            </button>
+            
             <button type="button" id="btn-admin-logout" class="px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-semibold transition">
               Đăng xuất
             </button>

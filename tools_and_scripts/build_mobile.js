@@ -167,6 +167,14 @@ function buildMobile() {
 
         <p class="text-[11px] text-slate-500">👉 Nhấp vào ô trống để chọn giờ • Vuốt ngang để xem ca tối</p>
 
+        <!-- Fast Jump Bar on Mobile -->
+        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-0.5">
+          <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap">⚡ Nhảy nhanh:</span>
+          <button type="button" data-matrix-jump="05:00" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold whitespace-nowrap">🌅 5h</button>
+          <button type="button" data-matrix-jump="12:00" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold whitespace-nowrap">☀️ 12h</button>
+          <button type="button" data-matrix-jump="17:00" class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold whitespace-nowrap">🌙 17h</button>
+        </div>
+
         <!-- Matrix Table Wrapper with smooth horizontal swipe and sticky left court -->
         <div id="cust-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar -mx-1 rounded-xl border border-[#c4ded7] shadow-xs relative bg-white">
           <table class="w-full text-left border-collapse min-w-[1880px]">

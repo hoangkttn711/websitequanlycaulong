@@ -1651,6 +1651,126 @@ function updateDynamicDateLabels() {
         }
       }
 
+      function scrollToMatrixTime(time, smooth = true) {
+        const wrapper = document.getElementById('cust-matrix-scroll-wrapper');
+        if (!wrapper) return;
+        const targetTh = document.querySelector(`[data-slot-start="${time}"]`);
+        const stickyTh = document.getElementById('cust-alobo-matrix-header')?.firstElementChild;
+        const stickyWidth = stickyTh ? stickyTh.offsetWidth : 80;
+        if (targetTh) {
+          const scrollPos = Math.max(0, targetTh.offsetLeft - stickyWidth);
+          wrapper.scrollTo({ left: scrollPos, behavior: smooth ? 'smooth' : 'auto' });
+        }
+      }
+
+      function setupHorizontalScrollInteractions() {
+        const scrollWrappers = [
+          document.getElementById('cust-matrix-scroll-wrapper'),
+          ...document.querySelectorAll('.overflow-x-auto.custom-scrollbar')
+        ].filter((el, idx, arr) => el && arr.indexOf(el) === idx);
+
+        scrollWrappers.forEach(wrapper => {
+          if (wrapper._hasHorizontalScrollSetup) return;
+          wrapper._hasHorizontalScrollSetup = true;
+
+          // 1. Mouse Wheel -> Horizontal Scroll (Chuyển lăn dọc thành lướt ngang khi ở trong bảng)
+          wrapper.addEventListener('wheel', function (e) {
+            // Touchpad lướt ngang chuẩn hoặc Shift + wheel thì giữ nguyên trình duyệt xử lý
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+            const isScrollingDown = e.deltaY > 0;
+            const atLeft = wrapper.scrollLeft <= 2;
+            const atRight = (wrapper.scrollLeft + wrapper.clientWidth) >= (wrapper.scrollWidth - 3);
+
+            // Chống kẹt cuộn: Nếu đã chạm mép cuối (23h) hoặc mép đầu (5h), cho phép cuộn trang web dọc bình thường
+            if ((!isScrollingDown && atLeft) || (isScrollingDown && atRight)) {
+              return;
+            }
+
+            e.preventDefault();
+            wrapper.scrollLeft += e.deltaY * 1.0;
+          }, { passive: false });
+
+          // 2. Kéo giữ chuột để lướt ngang (Click & Drag to Scroll)
+          let isDown = false;
+          let startX = 0;
+          let scrollLeft = 0;
+          let hasDragged = false;
+
+          wrapper.style.cursor = 'grab';
+
+          wrapper.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) return; // Chỉ nhận chuột trái
+            isDown = true;
+            hasDragged = false;
+            startX = e.pageX - wrapper.offsetLeft;
+            scrollLeft = wrapper.scrollLeft;
+            wrapper.style.cursor = 'grabbing';
+            wrapper.style.userSelect = 'none';
+          });
+
+          window.addEventListener('mouseup', function () {
+            if (isDown) {
+              isDown = false;
+              wrapper.style.cursor = 'grab';
+              wrapper.style.removeProperty('user-select');
+              if (hasDragged) {
+                setTimeout(function () { hasDragged = false; }, 60);
+              }
+            }
+          });
+
+          wrapper.addEventListener('mousemove', function (e) {
+            if (!isDown) return;
+            const x = e.pageX - wrapper.offsetLeft;
+            const walk = (x - startX);
+            if (Math.abs(walk) > 4) {
+              hasDragged = true;
+              e.preventDefault();
+              wrapper.scrollLeft = scrollLeft - walk;
+            }
+          });
+
+          // Ngăn chặn việc bấm nhầm chọn giờ nếu đang vuốt/kéo rê chuột
+          wrapper.addEventListener('click', function (e) {
+            if (hasDragged) {
+              e.preventDefault();
+              e.stopPropagation();
+              hasDragged = false;
+            }
+          }, true);
+        });
+
+        // 3. Xử lý các nút bấm nhảy nhanh tới khung giờ (Sáng / Trưa / Tối)
+        document.querySelectorAll('[data-matrix-jump]').forEach(btn => {
+          if (btn._hasJumpSetup) return;
+          btn._hasJumpSetup = true;
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const time = btn.getAttribute('data-matrix-jump');
+            scrollToMatrixTime(time, true);
+          });
+        });
+
+        // 4. Xử lý 2 nút mũi tên điều hướng lướt sang trái / phải
+        const btnLeft = document.getElementById('btn-matrix-scroll-left');
+        const btnRight = document.getElementById('btn-matrix-scroll-right');
+        const custWrapper = document.getElementById('cust-matrix-scroll-wrapper');
+        if (btnLeft && !btnLeft._hasNavSetup && custWrapper) {
+          btnLeft._hasNavSetup = true;
+          btnLeft.addEventListener('click', function () {
+            custWrapper.scrollBy({ left: -360, behavior: 'smooth' });
+          });
+        }
+        if (btnRight && !btnRight._hasNavSetup && custWrapper) {
+          btnRight._hasNavSetup = true;
+          btnRight.addEventListener('click', function () {
+            custWrapper.scrollBy({ left: 360, behavior: 'smooth' });
+          });
+        }
+      }
+
+
       function renderAll() {
         updateRoleViewMode();
         renderCustomerPortal();
@@ -3036,6 +3156,7 @@ function updateDynamicDateLabels() {
       renderAll();
       setTimeout(function () {
         scrollToFirstSelectableSlot(false);
+        setupHorizontalScrollInteractions();
       }, 50);
 
       // Kích hoạt kết nối và đồng bộ Supabase Realtime

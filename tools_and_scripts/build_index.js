@@ -208,6 +208,23 @@ function buildIndex() {
             </div>
             <span class="text-[11px] text-slate-400">Vuốt ngang xem từ 5h đến 23h</span>
           </div>
+
+          <!-- Quick Time Jump Bar & Scroll Navigation -->
+          <div class="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 flex-wrap text-xs">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px] font-bold text-slate-500">⚡ Xem nhanh:</span>
+              <button type="button" data-matrix-jump="05:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌅 Sáng (5h)</button>
+              <button type="button" data-matrix-jump="12:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">☀️ Trưa (12h)</button>
+              <button type="button" data-matrix-jump="17:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌙 Tối vàng (17h)</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400 hidden sm:inline">🖱️ Lăn chuột / kéo rê để lướt</span>
+              <div class="flex items-center gap-1">
+                <button type="button" id="btn-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
+                <button type="button" id="btn-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Hidden validator elements -->

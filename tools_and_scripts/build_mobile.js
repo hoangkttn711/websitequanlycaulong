@@ -7,6 +7,7 @@ const orig = fs.readFileSync(origPath, 'utf8');
 const headStart = orig.indexOf('<head>');
 const headEnd = orig.indexOf('</head>') + 7;
 let headHTML = orig.slice(headStart, headEnd);
+headHTML = headHTML.replace('</head>', '  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n</head>');
 headHTML = headHTML.replace(/\.view-mode-phone-wrapper\s*\{[\s\S]*?\}/g, '');
 
 // 2. Extract Modals
@@ -58,6 +59,7 @@ function buildMobile() {
             <div class="flex items-center gap-1.5">
               <span class="font-black text-base tracking-tight text-white leading-none">SmashCourt<span class="text-emerald-400">Pro</span></span>
               <span id="role-mode-badge" class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Khách</span>
+              <span id="supabase-status-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[10px] font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span><span>Realtime Cloud</span></span>
             </div>
             <p class="text-[10px] text-slate-400 mt-0.5 truncate">📍 11 Lê Khôi • 4 Sân BWF • <a href="tel:0988412889" class="text-emerald-400 font-bold">0988.412.889</a></p>
           </div>

@@ -41,7 +41,7 @@ Hệ thống web toàn diện phục vụ quản lý doanh thu, vận hành sân
 
 1. Tải về hoặc clone repository:
    ```bash
-   git clone https://github.com/tranlehoang071196/websitequanlycaulong.git
+   git clone https://github.com/hoangkttn711/websitequanlycaulong.git
    ```
 2. Mở trực tiếp `index.html`, `pc.html` hoặc `mobile.html` trên bất kỳ trình duyệt web nào (Chrome, Safari, Edge, Firefox).
 3. **Đăng nhập Quản lý (Admin)**:

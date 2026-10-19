@@ -1639,78 +1639,175 @@
       }
 
       // ==================== RENDER VIEW 3: SCHEDULE TIMELINE & BOOKINGS ====================
-      function renderSchedule() {
-        const slots = ['06:00 - 08:00', '08:00 - 10:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00', '20:00 - 22:00'];
-        const timelineBody = document.getElementById('schedule-timeline-body');
-        if (timelineBody) {
-          timelineBody.innerHTML = state.courts.map(court => {
-            const cells = slots.map(slot => {
-              const colRange = parseSlotRange(slot);
+            function renderSchedule() {
+        const aloboSlots = getAloboSlots(30);
+        const isToday = (!state.customerDay || state.customerDay === 'today');
+        const currentMin = getCurrentMinutes();
+        const firstSelectableMin = getFirstSelectableMin(currentMin, 30);
+
+        // 1. Render Admin Alobo Matrix Header (05:00 - 23:00)
+        const adminHeader = document.getElementById('admin-alobo-matrix-header');
+        if (adminHeader) {
+          adminHeader.innerHTML = `
+            <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0"></th>
+            ${aloboSlots.map((slot, idx) => {
+              const slotStartM = timeToMinutes(slot.start);
+              const isColPast = isToday && (slotStartM < currentMin);
+              const isFirstSelect = isToday && (slotStartM === firstSelectableMin);
+              const colBg = isColPast ? 'bg-[#b6e2f3] opacity-80' : 'bg-[#c0ebfb]';
+              const labelColor = isColPast ? 'text-slate-500' : 'text-[#0e362e]';
+              const tickClass = isColPast
+                ? 'w-[2px] h-[7px] bg-slate-400 rounded-xs pointer-events-none z-30'
+                : (isFirstSelect
+                    ? 'w-[3px] h-[8px] bg-emerald-700 rounded-xs pointer-events-none z-30'
+                    : 'w-[2px] h-[7px] bg-emerald-600 rounded-xs pointer-events-none z-30');
+
+              return `
+              <th data-slot-start="${slot.start}" class="relative border-r border-[#cadfe8] min-w-[56px] sm:min-w-[64px] h-11 p-0 text-left ${colBg} select-none">
+                <span class="absolute left-0 -translate-x-1/2 bottom-1 ${tickClass}"></span>
+                <span class="absolute left-0 -translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold ${labelColor} tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.start}</span>
+                ${idx === aloboSlots.length - 1 ? `
+                  <span class="absolute right-0 translate-x-1/2 bottom-1 w-[2px] h-[7px] bg-emerald-600 rounded-xs pointer-events-none z-30"></span>
+                  <span class="absolute right-0 translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold text-[#0e362e] tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.end}</span>
+                ` : ''}
+              </th>
+            `;}).join('')}
+          `;
+        }
+
+        // 2. Render Admin Alobo Matrix Body (HIỂN THỊ RÕ RÀNG TÊN KHÁCH & TRẠNG THÁI)
+        const adminBody = document.getElementById('admin-alobo-matrix-body');
+        if (adminBody) {
+          adminBody.innerHTML = state.courts.map(court => {
+            const slotCells = aloboSlots.map(slot => {
+              const slotStartMin = timeToMinutes(slot.start);
+              const slotEndMin = timeToMinutes(slot.end);
+
+              // Tìm đơn đặt bao phủ khung giờ này
               const booking = state.bookings.find(b => {
                 if (Number(b.courtId) !== court.id || b.status === 'cancelled') return false;
-                const bkRange = parseSlotRange(b.slot);
-                return isTimeOverlapping(colRange.startMin, colRange.endMin, bkRange.startMin, bkRange.endMin);
+                const r = parseSlotRange(b.slot);
+                return isTimeOverlapping(slotStartMin, slotEndMin, r.startMin, r.endMin);
               });
+
+              // Sân đang có khách đánh (active)
+              const isCourtActive = court.status === 'active' && isToday && (slotStartMin <= currentMin && slotEndMin >= currentMin);
+
               if (booking) {
-                if (booking.status === 'checked_in') {
-                  return `<td class="p-1.5"><div class="p-2 rounded-xl bg-emerald-600 text-white text-[11px] font-semibold shadow-xs"><p class="truncate">${booking.customer}</p><span class="text-[10px] opacity-90">${booking.slot} • Đang đánh</span></div></td>`;
+                // Admin nhìn vào là thấy NGAY AI ĐẶT!
+                let bgStyle = 'bg-amber-100 hover:bg-amber-200 border-r border-amber-300 text-amber-950';
+                let tagText = booking.deposit ? formatVND(booking.deposit) : 'Đã đặt';
+                if (booking.status === 'checked_in' || isCourtActive) {
+                  bgStyle = 'bg-emerald-600 hover:bg-emerald-700 border-r border-emerald-500 text-white';
+                  tagText = 'Đang đánh';
+                } else if (booking.status === 'completed') {
+                  bgStyle = 'bg-slate-200 hover:bg-slate-300 text-slate-700';
+                  tagText = 'Đã xong';
                 }
-                if (booking.status === 'completed') {
-                  return `<td class="p-1.5"><div class="p-2 rounded-xl bg-slate-100 text-slate-500 text-[11px] font-medium"><p class="truncate">${booking.customer}</p><span class="text-[10px]">${booking.slot}</span></div></td>`;
-                }
-                return `<td class="p-1.5"><div class="p-2 rounded-xl bg-amber-100 border border-amber-300 text-amber-950 text-[11px] font-semibold"><p class="truncate">${booking.customer}</p><span class="text-[10px] text-amber-800">${booking.slot}</span></div></td>`;
+
+                return `
+                  <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
+                    <button type="button" data-admin-booking-id="${booking.id}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="Khách: ${booking.customer} • SĐT: ${booking.phone || 'Chưa có'} • ${booking.slot} • Cọc: ${formatVND(booking.deposit)} • Bấm để xử lý">
+                      <span class="font-black text-[11px] truncate w-full px-0.5 text-center leading-tight">${booking.customer}</span>
+                      <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${booking.phone ? booking.phone.slice(-4) : tagText}</span>
+                    </button>
+                  </td>
+                `;
               }
+
+              if (court.status === 'maintenance') {
+                return `
+                  <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 bg-rose-50 p-0 text-center select-none text-rose-700 font-bold text-[10px]">
+                    <div class="w-full h-full flex items-center justify-center">Bảo trì</div>
+                  </td>
+                `;
+              }
+
+              // Khung giờ quá khứ
+              const isPast = isToday && (slotStartMin < currentMin);
+              if (isPast) {
+                return `
+                  <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 bg-slate-100/60 p-0 text-center select-none">
+                    <span class="text-slate-300 font-bold text-[10px]">—</span>
+                  </td>
+                `;
+              }
+
+              // Khung giờ còn trống -> Admin bấm vào để ĐẶT LỊCH NHANH cho khách!
               return `
-                <td class="p-1.5">
-                  <button type="button" data-quick-slot-court="${court.id}" data-quick-slot-time="${slot}" class="w-full py-3 px-2 rounded-xl border border-dashed border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-[11px] text-slate-400 hover:text-emerald-700 font-medium transition">
-                    + Đặt sân
+                <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 bg-white hover:bg-emerald-50/80 p-0 text-center select-none transition-colors">
+                  <button type="button" data-admin-quick-slot-court="${court.id}" data-admin-quick-slot-start="${slot.start}" data-admin-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center text-slate-300 hover:text-emerald-600 font-extrabold text-xs cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • Bấm để đặt)">
+                    <span class="opacity-0 hover:opacity-100 text-[11px] transition-opacity">+</span>
                   </button>
                 </td>
               `;
             }).join('');
 
+            const isGreyCourt = court.matColor === 'grey' || court.id >= 3;
+            const courtMatGradient = isGreyCourt
+              ? 'bg-gradient-to-br from-[#475569] via-[#3b4754] to-[#2d3748]'
+              : 'bg-gradient-to-br from-[#059669] via-[#047857] to-[#065f46]';
+            const courtTypeLabel = isGreyCourt ? 'Thảm xám' : 'Thảm xanh';
+            const subTextColor = isGreyCourt ? 'text-slate-200' : 'text-emerald-100';
+
             return `
-              <tr class="hover:bg-slate-50/60">
-                <td class="py-3 px-4 font-bold text-slate-900 sticky left-0 bg-white border-r border-slate-200">
-                  ${court.name}
-                  <span class="block text-[10px] font-normal text-slate-500">${court.zone}</span>
+              <tr class="h-11 sm:h-12">
+                <td class="sticky left-0 z-20 border-r-2 border-[#a3cdc2] border-b border-slate-200 text-center select-none w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] h-11 sm:h-12 p-0 ${courtMatGradient} relative overflow-hidden">
+                  <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-80" viewBox="0 0 100 50" preserveAspectRatio="none">
+                    <rect x="2" y="2" width="96" height="46" fill="none" stroke="white" stroke-width="1.2" stroke-opacity="0.85" />
+                    <line x1="2" y1="7" x2="98" y2="7" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="2" y1="43" x2="98" y2="43" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="9" y1="2" x2="9" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="91" y1="2" x2="91" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="36" y1="2" x2="36" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="64" y1="2" x2="64" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="2" y1="25" x2="36" y2="25" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="64" y1="25" x2="98" y2="25" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
+                    <line x1="50" y1="1" x2="50" y2="49" stroke="white" stroke-width="1.8" stroke-dasharray="2.5 1.5" stroke-opacity="0.9" />
+                  </svg>
+                  <div class="relative z-10 flex flex-col items-center justify-center w-full h-full py-1">
+                    <span class="font-black text-white text-[11px] sm:text-xs tracking-tight uppercase leading-none drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.9)]">${court.name}</span>
+                    <span class="text-[8.5px] sm:text-[9px] font-bold ${subTextColor} leading-none mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">${courtTypeLabel}</span>
+                  </div>
                 </td>
-                ${cells}
+                ${slotCells}
               </tr>
             `;
           }).join('');
         }
 
+        // 3. Render Bookings List Table
         const bookingsBody = document.getElementById('bookings-table-body');
         document.getElementById('booking-count-label').textContent = `${state.bookings.length} lịch đặt`;
         if (bookingsBody) {
           bookingsBody.innerHTML = state.bookings.map(b => {
-            let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800">Chờ nhận sân</span>`;
-            if (b.status === 'checked_in') {
-              statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">Đang trên sân</span>`;
-            } else if (b.status === 'completed') {
-              statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">Hoàn thành</span>`;
-            } else if (b.status === 'cancelled') {
-              statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-700">Đã hủy</span>`;
-            }
-
-            const courtObj = state.courts.find(c => c.id === Number(b.courtId));
-            const courtLabel = courtObj ? `${courtObj.name} (${courtObj.zone})` : `Sân ${b.courtId}`;
+            const court = state.courts.find(c => c.id === Number(b.courtId));
+            const courtName = court ? `${court.name} (${court.zone})` : `Sân ${b.courtId}`;
 
             return `
-              <tr class="hover:bg-slate-50">
+              <tr class="hover:bg-slate-50/80">
                 <td class="py-3 px-4 font-bold text-slate-900">${b.customer}</td>
-                <td class="py-3 px-4 text-slate-600">${b.phone}</td>
-                <td class="py-3 px-4 font-semibold text-emerald-700">${courtLabel}</td>
-                <td class="py-3 px-4 font-medium">${b.slot}</td>
-                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px]">${b.type}</span></td>
-                <td class="py-3 px-4 text-right font-semibold">${formatVND(b.deposit)}</td>
-                <td class="py-3 px-4">${statusBadge}</td>
-                <td class="py-3 px-4 text-right space-x-1">
-                  ${b.status === 'reserved' ? `
-                    <button type="button" data-booking-checkin="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700">Nhận sân</button>
-                    <button type="button" data-booking-cancel="${b.id}" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 font-semibold text-[11px] hover:bg-rose-100">Hủy</button>
-                  ` : `<span class="text-slate-400 text-[11px]">—</span>`}
+                <td class="py-3 px-4 text-slate-600">${b.phone || '—'}</td>
+                <td class="py-3 px-4 font-semibold text-emerald-700">${courtName}</td>
+                <td class="py-3 px-4 font-bold text-slate-800">${b.slot}</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[11px] bg-slate-100 font-medium">${b.type === 'fixed' ? 'Khách cố định' : 'Vãng lai'}</span></td>
+                <td class="py-3 px-4 text-right font-bold text-emerald-600">${formatVND(b.deposit)}</td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold ${b.status === 'checked_in' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                    ${b.status === 'checked_in' ? 'Đang đánh' : 'Đã cọc'}
+                  </span>
+                </td>
+                <td class="py-3 px-4 text-right">
+                  <div class="flex items-center justify-end gap-1.5">
+                    ${b.status !== 'checked_in' ? `
+                      <button type="button" data-checkin-booking="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs">
+                        Nhận Sân
+                      </button>
+                    ` : ''}
+                    <button type="button" data-cancel-booking="${b.id}" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 font-semibold text-[11px]">
+                      Hủy
+                    </button>
+                  </div>
                 </td>
               </tr>
             `;
@@ -1718,7 +1815,6 @@
         }
       }
 
-      // ==================== RENDER VIEW 4: INVENTORY ====================
       function renderInventory() {
         const tbody = document.getElementById('inventory-table-body');
         if (!tbody) return;
@@ -2770,7 +2866,49 @@ function updateDynamicDateLabels() {
         }
       }
 
+      
+      function scrollToAdminMatrixTime(time, smooth = true) {
+        const wrapper = document.getElementById('admin-matrix-scroll-wrapper');
+        if (!wrapper) return;
+        const targetTh = wrapper.querySelector(`[data-slot-start="${time}"]`);
+        const stickyTh = document.getElementById('admin-alobo-matrix-header')?.firstElementChild;
+        const stickyWidth = stickyTh ? stickyTh.offsetWidth : 80;
+        if (targetTh) {
+          const scrollPos = Math.max(0, targetTh.offsetLeft - stickyWidth);
+          wrapper.scrollTo({ left: scrollPos, behavior: smooth ? 'smooth' : 'auto' });
+        }
+      }
+
       function setupHorizontalScrollInteractions() {
+
+        // Admin Quick Jump Buttons
+        document.querySelectorAll('[data-admin-matrix-jump]').forEach(btn => {
+          if (btn._hasAdminJumpSetup) return;
+          btn._hasAdminJumpSetup = true;
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const time = btn.getAttribute('data-admin-matrix-jump');
+            scrollToAdminMatrixTime(time, true);
+          });
+        });
+
+        // Admin Arrow Navigation Buttons
+        const btnAdminLeft = document.getElementById('btn-admin-matrix-scroll-left');
+        const btnAdminRight = document.getElementById('btn-admin-matrix-scroll-right');
+        const adminWrapper = document.getElementById('admin-matrix-scroll-wrapper');
+        if (btnAdminLeft && !btnAdminLeft._hasNavSetup && adminWrapper) {
+          btnAdminLeft._hasNavSetup = true;
+          btnAdminLeft.addEventListener('click', function () {
+            adminWrapper.scrollBy({ left: -360, behavior: 'smooth' });
+          });
+        }
+        if (btnAdminRight && !btnAdminRight._hasNavSetup && adminWrapper) {
+          btnAdminRight._hasNavSetup = true;
+          btnAdminRight.addEventListener('click', function () {
+            adminWrapper.scrollBy({ left: 360, behavior: 'smooth' });
+          });
+        }
+  
         const scrollWrappers = [
           document.getElementById('cust-matrix-scroll-wrapper'),
           ...document.querySelectorAll('.overflow-x-auto.custom-scrollbar')

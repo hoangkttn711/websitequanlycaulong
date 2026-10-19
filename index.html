@@ -1216,10 +1216,7 @@
           customerAddonSearch: '',
           customerAddonCat: 'all',
           customerShopCat: 'all',
-          customerCart: [
-            { productId: 'p1', qty: 2 },
-            { productId: 'p6', qty: 1 }
-          ],
+          customerCart: [],
           activeTab: 'courts',
           courtFilter: 'all',
           posCategory: 'all',
@@ -1229,80 +1226,13 @@
           checkoutPaymentMethod: 'cash',
           invoiceFilter: 'all',
           activeCheckoutCourtId: null,
-          posCart: [
-            { productId: 'p1', qty: 2 },
-            { productId: 'p6', qty: 1 }
-          ],
+          posCart: [],
           // Rule 2: Exactly 4 courts — 2 Sân thảm xanh (Sân 1, 2) & 2 Sân thảm xám (Sân 3, 4)
           courts: [
-            {
-              id: 1,
-              name: 'Sân 1',
-              zone: 'Sân thảm xanh',
-              matColor: 'green',
-              status: 'active',
-              customer: 'Nhóm Anh Tuấn',
-              rateType: 'normal',
-              hourlyRate: 60000,
-              startTime: '14:00',
-              bookedHours: 1.5,
-              elapsedMinutes: 52,
-              deposit: 0,
-              items: [
-                { productId: 'p9', name: 'Ống cầu Hải Yến S90', price: 245000, qty: 1 },
-                { productId: 'p1', name: 'Nước bù khoáng Revive', price: 15000, qty: 4 },
-                { productId: 'p6', name: 'Quấn cán VS chống trơn', price: 20000, qty: 2 }
-              ]
-            },
-            {
-              id: 2,
-              name: 'Sân 2',
-              zone: 'Sân thảm xanh',
-              matColor: 'green',
-              status: 'free',
-              customer: '',
-              rateType: 'normal',
-              hourlyRate: 60000,
-              startTime: '',
-              bookedHours: 1.5,
-              elapsedMinutes: 0,
-              deposit: 0,
-              items: []
-            },
-            {
-              id: 3,
-              name: 'Sân 3',
-              zone: 'Sân thảm xám',
-              matColor: 'grey',
-              status: 'active',
-              customer: 'Nhóm Chị Lan & Bạn',
-              rateType: 'normal',
-              hourlyRate: 60000,
-              startTime: '13:00',
-              bookedHours: 2.0,
-              elapsedMinutes: 80,
-              deposit: 0,
-              items: [
-                { productId: 'p10', name: 'Quả cầu Hải Yến bán lẻ', price: 22000, qty: 3 },
-                { productId: 'p3', name: 'Nước suối Aquafina 500ml', price: 10000, qty: 2 },
-                { productId: 'p12', name: 'Thuê vợt Carbon Yonex', price: 30000, qty: 2 }
-              ]
-            },
-            {
-              id: 4,
-              name: 'Sân 4',
-              zone: 'Sân thảm xám',
-              matColor: 'grey',
-              status: 'reserved',
-              customer: 'Đội Anh Hoàng (17:00 - 19:00)',
-              rateType: 'peak',
-              hourlyRate: 80000,
-              startTime: '17:00',
-              bookedHours: 2.0,
-              elapsedMinutes: 0,
-              deposit: 50000,
-              items: []
-            }
+            { id: 1, name: 'Sân 1', zone: 'Sân thảm xanh', matColor: 'green', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] },
+            { id: 2, name: 'Sân 2', zone: 'Sân thảm xanh', matColor: 'green', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] },
+            { id: 3, name: 'Sân 3', zone: 'Sân thảm xám', matColor: 'grey', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] },
+            { id: 4, name: 'Sân 4', zone: 'Sân thảm xám', matColor: 'grey', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] }
           ],
           products: [
             { id: 'p1', name: 'Nước bù khoáng Revive', category: 'drink', unit: 'Chai', cost: 8000, price: 12000, stock: 64, soldToday: 18, icon: '🥤' },
@@ -1320,85 +1250,8 @@
             { id: 'p13', name: 'Thuê giày cầu lông chuyên dụng', category: 'rental', unit: 'Đôi', cost: 0, price: 30000, stock: 12, soldToday: 4, icon: '👟' },
             { id: 'p14', name: 'Băng cổ tay chặn mồ hôi', category: 'grip', unit: 'Cái', cost: 15000, price: 30000, stock: 20, soldToday: 3, icon: '💪' }
           ],
-          bookings: [
-            { id: 'BK-101', customer: 'Đội Anh Hoàng', phone: '0988.412.889', courtId: 4, slot: '17:00 - 19:00', type: 'Khách vãng lai', deposit: 50000, status: 'reserved' },
-            { id: 'BK-102', customer: 'CLB Cầu Lông Hà Đông', phone: '0912.678.234', courtId: 1, slot: '18:00 - 20:00', type: 'Cố định tháng', deposit: 80000, status: 'reserved' },
-            { id: 'BK-103', customer: 'Nhóm Anh Kiên (FPT)', phone: '0979.331.556', courtId: 3, slot: '19:00 - 21:00', type: 'Khách vãng lai', deposit: 50000, status: 'reserved' },
-            { id: 'BK-104', customer: 'Team Bách Khoa K62', phone: '0904.512.900', courtId: 2, slot: '20:00 - 22:00', type: 'Khách vãng lai', deposit: 50000, status: 'reserved' },
-            { id: 'BK-105', customer: 'CLB Đôi Nam Nữ Cầu Giấy', phone: '0936.118.772', courtId: 4, slot: '20:00 - 22:00', type: 'Cố định tháng', deposit: 60000, status: 'reserved' },
-            { id: 'BK-106', customer: 'Nhóm Anh Tuấn', phone: '0963.882.110', courtId: 1, slot: '14:00 - 16:00', type: 'Khách vãng lai', deposit: 0, status: 'checked_in' },
-            { id: 'BK-107', customer: 'CLB Hưu Trí Phường', phone: '0913.225.881', courtId: 2, slot: '06:00 - 08:00', type: 'Cố định tháng', deposit: 0, status: 'completed' }
-          ],
-          invoices: [
-            {
-              id: 'HD-2610-01',
-              time: '08:05',
-              type: 'court',
-              courtName: 'Sân 1',
-              customer: 'CLB Buổi Sáng',
-              courtFee: 120000,
-              posFee: 295000,
-              discount: 0,
-              total: 415000,
-              paymentMethod: 'Tiền mặt',
-              items: [
-                { name: 'Tiền thuê Sân 1 (2.0 giờ x 60k)', qty: 1, price: 120000 },
-                { name: 'Ống cầu Hải Yến S90 (12 quả)', qty: 1, price: 245000 },
-                { name: 'Nước suối Aquafina 500ml', qty: 5, price: 10000 }
-              ]
-            },
-            {
-              id: 'HD-2610-02',
-              time: '09:40',
-              type: 'court',
-              courtName: 'Sân 3',
-              customer: 'Nhóm Sinh Viên',
-              courtFee: 90000,
-              posFee: 155000,
-              discount: 0,
-              total: 245000,
-              paymentMethod: 'Chuyển khoản QR',
-              items: [
-                { name: 'Tiền thuê Sân 3 (1.5 giờ x 60k)', qty: 1, price: 90000 },
-                { name: 'Nước bù khoáng Revive', qty: 5, price: 15000 },
-                { name: 'Quấn cán VS chống trơn', qty: 4, price: 20000 }
-              ]
-            },
-            {
-              id: 'HD-2610-03',
-              time: '10:15',
-              type: 'retail',
-              courtName: 'Quầy POS',
-              customer: 'Khách mua lẻ tại quầy',
-              courtFee: 0,
-              posFee: 335000,
-              discount: 0,
-              total: 335000,
-              paymentMethod: 'Chuyển khoản QR',
-              items: [
-                { name: 'Ống cầu Thành Công 77', qty: 1, price: 250000 },
-                { name: 'Quấn cán Yonex AC102EX', qty: 2, price: 35000 },
-                { name: 'Nước bù khoáng Revive', qty: 1, price: 15000 }
-              ]
-            },
-            {
-              id: 'HD-2610-04',
-              time: '11:30',
-              type: 'court',
-              courtName: 'Sân 4',
-              customer: 'Anh Dũng - Giao lưu Đôi Nam',
-              courtFee: 120000,
-              posFee: 146000,
-              discount: 0,
-              total: 266000,
-              paymentMethod: 'Tiền mặt',
-              items: [
-                { name: 'Tiền thuê Sân 4 - Sân thảm xám (2.0 giờ)', qty: 1, price: 120000 },
-                { name: 'Quả cầu Hải Yến bán lẻ', qty: 3, price: 22000 },
-                { name: 'Bò húc RedBull Thái', qty: 4, price: 20000 }
-              ]
-            }
-          ]
+          bookings: [],
+          invoices: []
         };
       }
 
@@ -1413,6 +1266,15 @@
           if (saved) {
             const parsed = JSON.parse(saved);
             const merged = Object.assign({}, init, parsed);
+            // Xóa sạch các đơn mẫu cũ (BK-101, BK-102...) khỏi localStorage trình duyệt
+            const mockIds = ['BK-101', 'BK-102', 'BK-103', 'BK-104', 'BK-106', 'BK-107'];
+            if (Array.isArray(merged.bookings)) {
+              merged.bookings = merged.bookings.filter(b => !mockIds.includes(b.id));
+            }
+            if (Array.isArray(merged.invoices)) {
+              merged.invoices = merged.invoices.filter(i => !i.id || !i.id.startsWith('HD-2610-0'));
+            }
+
 
             // Ensure essential arrays always exist
             if (!Array.isArray(merged.courts) || merged.courts.length === 0) merged.courts = init.courts;

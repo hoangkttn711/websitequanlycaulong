@@ -17,7 +17,7 @@
         return Math.max(startA, startB) < Math.min(endA, endB);
       }
 
-      
+
       function getCurrentMinutes() { return Core.nowMinutes(); }
       function getFirstSelectableMin(curMin, step = 30) {
         const rounded = Math.ceil(curMin / step) * step;
@@ -77,6 +77,7 @@
           invoiceFilter: 'all',
           activeCheckoutCourtId: null,
           posCart: [],
+          kpiCollapsed: true,
           // Rule 2: Exactly 4 courts — 2 Sân thảm xanh (Sân 1, 2) & 2 Sân thảm xám (Sân 3, 4)
           courts: [
             { id: 1, name: 'Sân 1', zone: 'Sân thảm xanh', matColor: 'green', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] },
@@ -242,14 +243,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden flex flex-col justify-between transition hover:shadow-md">
               <div>
                 <div class="${surfaceClass} p-3.5 text-white relative overflow-hidden">
-                  <svg class="absolute inset-0 w-full h-full opacity-20 pointer-events-none" viewBox="0 0 200 100" preserveAspectRatio="none">
-                    <rect x="8" y="8" width="184" height="84" fill="none" stroke="white" stroke-width="2"/>
-                    <line x1="100" y1="8" x2="100" y2="92" stroke="white" stroke-width="2.5" stroke-dasharray="4 3"/>
-                    <line x1="65" y1="8" x2="65" y2="92" stroke="white" stroke-width="1.5"/>
-                    <line x1="135" y1="8" x2="135" y2="92" stroke="white" stroke-width="1.5"/>
-                    <line x1="8" y1="50" x2="65" y2="50" stroke="white" stroke-width="1.5"/>
-                    <line x1="135" y1="50" x2="192" y2="50" stroke="white" stroke-width="1.5"/>
-                  </svg>
+
                   <div class="relative z-10 flex items-center justify-between">
                     <div>
                       <span class="text-base font-extrabold tracking-tight">${court.name}</span>
@@ -472,13 +466,13 @@
         const adminHeader = document.getElementById('admin-alobo-matrix-header');
         if (adminHeader) {
           adminHeader.innerHTML = `
-            <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0 text-center font-black text-xs text-[#0e362e] uppercase tracking-wider">SÂN</th>
+            <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#f1f5f9] z-20 border-r-2 border-[#cbd5e1] h-11 p-0 text-center font-black text-xs text-[#334155] uppercase tracking-wider">SÂN</th>
             ${aloboSlots.map((slot, idx) => {
               const slotStartM = timeToMinutes(slot.start);
               const isColPast = isToday && (slotStartM < currentMin);
               const isFirstSelect = isToday && (slotStartM === firstSelectableMin);
-              const colBg = isColPast ? 'bg-[#b6e2f3] opacity-80' : 'bg-[#c0ebfb]';
-              const labelColor = isColPast ? 'text-slate-500' : 'text-[#0e362e]';
+              const colBg = isColPast ? 'bg-[#b6e2f3] opacity-80' : 'bg-[#f1f5f9]';
+              const labelColor = isColPast ? 'text-slate-500' : 'text-[#334155]';
               const tickClass = isColPast
                 ? 'w-[2px] h-[7px] bg-slate-400 rounded-xs pointer-events-none z-30'
                 : (isFirstSelect
@@ -486,12 +480,12 @@
                     : 'w-[2px] h-[7px] bg-emerald-600 rounded-xs pointer-events-none z-30');
 
               return `
-              <th data-slot-start="${slot.start}" class="relative border-r border-[#cadfe8] min-w-[56px] sm:min-w-[64px] h-11 p-0 text-left ${colBg} select-none">
+              <th data-slot-start="${slot.start}" class="relative border-r border-[#e2e8f0] min-w-[56px] sm:min-w-[64px] h-11 p-0 text-left ${colBg} select-none">
                 <span class="absolute left-0 -translate-x-1/2 bottom-1 ${tickClass}"></span>
                 <span class="absolute left-0 -translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold ${labelColor} tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.start}</span>
                 ${idx === aloboSlots.length - 1 ? `
                   <span class="absolute right-0 translate-x-1/2 bottom-1 w-[2px] h-[7px] bg-emerald-600 rounded-xs pointer-events-none z-30"></span>
-                  <span class="absolute right-0 translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold text-[#0e362e] tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.end}</span>
+                  <span class="absolute right-0 translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold text-[#334155] tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.end}</span>
                 ` : ''}
               </th>
             `;}).join('')}
@@ -568,7 +562,7 @@
 
             return `
               <tr class="h-11 sm:h-12">
-                <td class="sticky left-0 z-20 border-r-2 border-[#a3cdc2] border-b border-slate-200 text-center select-none w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] h-11 sm:h-12 p-0 ${courtMatGradient} relative overflow-hidden">
+                <td class="sticky left-0 z-20 border-r-2 border-[#cbd5e1] border-b border-slate-200 text-center select-none w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] h-11 sm:h-12 p-0 ${courtMatGradient} relative overflow-hidden">
                   <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-80" viewBox="0 0 100 50" preserveAspectRatio="none">
                     <rect x="2" y="2" width="96" height="46" fill="none" stroke="white" stroke-width="1.2" stroke-opacity="0.85" />
                     <line x1="2" y1="7" x2="98" y2="7" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
@@ -924,7 +918,10 @@
         document.getElementById('admin-workspace').classList.toggle('hidden', !showAdminWorkspace);
         document.getElementById('admin-nav-bar').classList.toggle('hidden', !showAdminWorkspace);
         document.getElementById('btn-open-admin-login').classList.toggle('hidden', isAdmin);
-        document.getElementById('admin-header-controls').classList.toggle('hidden', !isAdmin);
+        const customerBottomNav = document.getElementById('customer-bottom-nav');
+        if (customerBottomNav) customerBottomNav.classList.toggle('hidden', showAdminWorkspace);
+        const adminHeaderControls = document.getElementById('admin-header-controls');
+        if (adminHeaderControls) adminHeaderControls.classList.toggle('hidden', !isAdmin);
 
         const roleBadge = document.getElementById('role-mode-badge');
         if (roleBadge) {
@@ -936,7 +933,7 @@
             roleBadge.className = 'hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap';
           } else {
             roleBadge.textContent = 'Khách đặt sân';
-            roleBadge.className = 'hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap';
+            roleBadge.className = 'hidden';
           }
         }
 
@@ -1084,7 +1081,7 @@
         const feeLblEl = document.getElementById('cust-time-fee-label');
         if (feeLblEl) feeLblEl.textContent = formatVND(grandTotalCourtFee);
 
-        
+
         // Render Alobo Court x Time Matrix (Header Xanh Da Trời & Cột Sân Xanh Bạc Hà Chuẩn Ảnh Alobo)
         document.querySelectorAll('.slot-dur-btn').forEach(btn => {
           const dur = Number(btn.getAttribute('data-slot-dur'));
@@ -1109,13 +1106,13 @@
         const matrixHeader = document.getElementById('cust-alobo-matrix-header');
         if (matrixHeader) {
           matrixHeader.innerHTML = `
-            <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0"></th>
+            <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#f1f5f9] z-20 border-r-2 border-[#cbd5e1] h-11 p-0"></th>
             ${aloboSlots.map((slot, idx) => {
               const slotStartM = timeToMinutes(slot.start);
               const isColPast = isToday && (slotStartM < currentMin);
               const isFirstSelect = isToday && (slotStartM === firstSelectableMin);
-              const colBg = isColPast ? 'bg-[#b6e2f3] opacity-80' : 'bg-[#c0ebfb]';
-              const labelColor = isColPast ? 'text-slate-500' : 'text-[#0e362e]';
+              const colBg = isColPast ? 'bg-[#b6e2f3] opacity-80' : 'bg-[#f1f5f9]';
+              const labelColor = isColPast ? 'text-slate-500' : 'text-[#334155]';
               const tickClass = isColPast
                 ? 'w-[2px] h-[7px] bg-slate-400 rounded-xs pointer-events-none z-30'
                 : (isFirstSelect
@@ -1123,14 +1120,14 @@
                     : 'w-[2px] h-[7px] bg-emerald-600 rounded-xs pointer-events-none z-30');
 
               return `
-              <th data-slot-start="${slot.start}" class="relative border-r border-[#cadfe8] min-w-[50px] sm:min-w-[56px] h-11 p-0 text-left ${colBg} select-none">
+              <th data-slot-start="${slot.start}" class="relative border-r border-[#e2e8f0] min-w-[50px] sm:min-w-[56px] h-11 p-0 text-left ${colBg} select-none">
                 <!-- Vạch khấc đặt chuẩn trên đường kẻ dọc phân cách giữa các cột -->
                 <span class="absolute left-0 -translate-x-1/2 bottom-1 ${tickClass}"></span>
                 <!-- Nhãn thời gian -->
                 <span class="absolute left-0 -translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold ${labelColor} tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.start}</span>
                 ${idx === aloboSlots.length - 1 ? `
                   <span class="absolute right-0 translate-x-1/2 bottom-1 w-[2px] h-[7px] bg-emerald-600 rounded-xs pointer-events-none z-30"></span>
-                  <span class="absolute right-0 translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold text-[#0e362e] tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.end}</span>
+                  <span class="absolute right-0 translate-x-1/2 top-1.5 text-[10px] sm:text-[11px] font-bold text-[#334155] tracking-tight leading-none whitespace-nowrap pointer-events-none z-30">${slot.end}</span>
                 ` : ''}
               </th>
             `}).join('')}
@@ -1169,7 +1166,7 @@
 
               if (isBooked) {
                 // Bảo mật tuyệt đối trên giao diện Khách: KHÔNG hiển thị tên khách khác
-                const bkLabel = court.status === 'maintenance' ? 'Bảo trì' : '🔒 Đã đặt';
+                const bkLabel = court.status === 'maintenance' ? 'Bảo trì' : 'Đã đặt';
                 const bkTitle = court.status === 'maintenance' ? 'Sân đang bảo trì' : 'Khung giờ đã có khách đặt';
 
                 return `
@@ -1203,28 +1200,15 @@
             }).join('');
 
             const isGreyCourt = court.matColor === 'grey' || court.id >= 3;
-            const courtMatGradient = isGreyCourt
-              ? 'bg-gradient-to-br from-[#475569] via-[#3b4754] to-[#2d3748]'
-              : 'bg-gradient-to-br from-[#059669] via-[#047857] to-[#065f46]';
+              const courtMatGradient = isGreyCourt ? 'bg-slate-600' : 'bg-emerald-700';
             const courtTypeLabel = isGreyCourt ? 'Thảm xám' : 'Thảm xanh';
             const subTextColor = isGreyCourt ? 'text-slate-200' : 'text-emerald-100';
 
             return `
               <tr class="h-10 sm:h-11">
                 <!-- Cột Sân tràn viền 100%, không lọt thỏm trong ô trắng -->
-                <td class="sticky left-0 z-20 border-r-2 border-[#a3cdc2] border-b border-slate-200 text-center select-none w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] h-10 sm:h-11 p-0 ${courtMatGradient} relative overflow-hidden">
-                  <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-80" viewBox="0 0 100 50" preserveAspectRatio="none">
-                    <rect x="2" y="2" width="96" height="46" fill="none" stroke="white" stroke-width="1.2" stroke-opacity="0.85" />
-                    <line x1="2" y1="7" x2="98" y2="7" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="2" y1="43" x2="98" y2="43" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="9" y1="2" x2="9" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="91" y1="2" x2="91" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="36" y1="2" x2="36" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="64" y1="2" x2="64" y2="48" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="2" y1="25" x2="36" y2="25" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="64" y1="25" x2="98" y2="25" stroke="white" stroke-width="0.8" stroke-opacity="0.7" />
-                    <line x1="50" y1="1" x2="50" y2="49" stroke="white" stroke-width="1.8" stroke-dasharray="2.5 1.5" stroke-opacity="0.9" />
-                  </svg>
+                <td class="sticky left-0 z-20 border-r-2 border-[#cbd5e1] border-b border-slate-200 text-center select-none w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] h-10 sm:h-11 p-0 ${courtMatGradient} relative overflow-hidden">
+
                   <div class="relative z-10 flex flex-col items-center justify-center w-full h-full py-1">
                     <span class="font-black text-white text-[11px] sm:text-xs tracking-tight uppercase leading-none drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.9)]">${court.name}</span>
                     <span class="text-[8.5px] sm:text-[9px] font-bold ${subTextColor} leading-none mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">${courtTypeLabel}</span>
@@ -1369,14 +1353,16 @@
         document.getElementById('cust-free-count-hint').textContent = `Còn ${freeCount}/4 sân trống`;
 
         // Render Quick Add-on items on the booking form (có bộ chọn số lượng +/- và nút chọn thêm)
-        const defaultQuickProdIds = ['p11', 'p10', 'p1'];
+        const defaultQuickProdIds = [];
         const allAddonProdIds = Array.from(new Set([
           ...defaultQuickProdIds,
           ...Object.keys(state.customerAddons || {}).filter(id => (state.customerAddons[id] || 0) > 0)
         ]));
 
         const addonsGrid = document.getElementById('cust-addons-grid');
-        if (addonsGrid) {
+        if (addonsGrid && allAddonProdIds.length === 0) {
+          addonsGrid.replaceChildren();
+        } else if (addonsGrid) {
           addonsGrid.innerHTML = allAddonProdIds.map(pId => {
             const prod = state.products.find(p => p.id === pId);
             if (!prod) return '';
@@ -1435,16 +1421,12 @@
         // Render recent bookings list for customer (Chỉ hiện đơn do chính khách này tự đặt trên thiết bị)
         const myBkList = document.getElementById('cust-my-bookings-list');
         if (myBkList) {
-          const myIds = Array.isArray(state.myDeviceBookingIds) ? state.myDeviceBookingIds : [];
           const myBks = state.bookings.filter(b => b.isMine && b.status !== 'cancelled');
+          const myBkBox = document.getElementById('cust-my-bookings-box');
+          if (myBkBox) myBkBox.classList.toggle('hidden', myBks.length === 0);
 
           if (myBks.length === 0) {
-            myBkList.innerHTML = `
-              <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-center text-xs text-slate-500">
-                <p class="font-bold text-slate-700">Chưa có lịch đặt sân nào</p>
-                <p class="text-[11px] text-slate-400 mt-1">Khi bạn đặt sân thành công, phiếu xác nhận sẽ hiển thị tại đây.</p>
-              </div>
-            `;
+            myBkList.innerHTML = '<p class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">Chưa có lịch đặt trên thiết bị này.</p>';
           } else {
             myBkList.innerHTML = myBks.map(b => {
               const cObj = state.courts.find(c => c.id === Number(b.courtId));
@@ -1637,7 +1619,7 @@ function updateDynamicDateLabels() {
         }
       }
 
-      
+
       function scrollToAdminMatrixTime(time, smooth = true) {
         const wrapper = document.getElementById('admin-matrix-scroll-wrapper');
         if (!wrapper) return;
@@ -1679,7 +1661,7 @@ function updateDynamicDateLabels() {
             adminWrapper.scrollBy({ left: 360, behavior: 'smooth' });
           });
         }
-  
+
         const scrollWrappers = [
           document.getElementById('cust-matrix-scroll-wrapper'),
           ...document.querySelectorAll('.overflow-x-auto.custom-scrollbar')
@@ -1931,7 +1913,7 @@ function updateDynamicDateLabels() {
           return;
         }
 
-        
+
         // Click-only Matrix Slot Toggle (Hỗ trợ chọn NHIỀU SÂN CÙNG LÚC & nhiều khung giờ liên tiếp hoặc riêng lẻ)
         const matrixBtn = e.target.closest('[data-matrix-slot-court]');
         if (matrixBtn) {
@@ -2018,7 +2000,7 @@ function updateDynamicDateLabels() {
           scrollToFirstSelectableSlot(true);
           return;
         }
-        
+
         // Customer Day Switch
         const custDayBtn = e.target.closest('[data-cust-day]');
         if (custDayBtn) {
@@ -2041,7 +2023,7 @@ function updateDynamicDateLabels() {
           renderCustomerPortal();
           scrollToFirstSelectableSlot(true);
 
-          
+
           return;
         }
 
@@ -2670,11 +2652,7 @@ function updateDynamicDateLabels() {
 
       // Reset Demo Data removed
 
-      // Clock uses the same venue timezone as booking and billing.
-      setInterval(function () {
-        const clockEl=document.getElementById('live-clock-display');
-        if(clockEl)clockEl.textContent=new Intl.DateTimeFormat('vi-VN',{dateStyle:'full',timeStyle:'medium',timeZone:Core.timezone}).format(new Date());
-      },1000);
+
       document.getElementById('admin-schedule-date').addEventListener('change',function(e){
         if(!/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))return;
         state.adminScheduleDate=e.target.value;renderAll();
@@ -2697,11 +2675,11 @@ function updateDynamicDateLabels() {
         e.preventDefault();
         await loginAdmin(document.getElementById('admin-username-input').value.trim(), document.getElementById('admin-password-input').value);
       });
-      document.getElementById('btn-toggle-customer-preview').addEventListener('click', function () {
+      document.getElementById('btn-toggle-customer-preview')?.addEventListener('click', function () {
         if (!state.isAdminLoggedIn) return;
         state.viewMode = state.viewMode === 'admin' ? 'customer' : 'admin'; renderAll();
       });
-      document.getElementById('btn-admin-logout').addEventListener('click', async function () { await logoutAdmin(); });
+      document.getElementById('btn-admin-logout')?.addEventListener('click', async function () { await logoutAdmin(); });
 
       // Customer Booking Addon Search Input live update
       const addonSearchEl = document.getElementById('cust-addon-search-input');

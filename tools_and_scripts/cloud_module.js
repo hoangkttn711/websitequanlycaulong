@@ -23,7 +23,7 @@
       }
       function updateSupabaseBadge(online) {
         const badge = document.getElementById('supabase-status-badge');
-        if (badge) { badge.textContent = online ? 'Đã đồng bộ máy chủ' : 'Chưa kết nối máy chủ'; badge.classList.remove('hidden'); }
+        if (badge) badge.classList.add('hidden');
       }
       async function rpc(name, args) {
         if (!supabaseClient) throw new Error('Chưa kết nối máy chủ. Vui lòng thử lại; bản nháp vẫn được giữ.');
@@ -74,7 +74,7 @@
           if (!writeBusy && generation === serverGeneration) applySnapshot(data);
         } catch (error) {
           ready = false; updateSupabaseBadge(false);
-          setSyncMessage('Chưa đồng bộ: ' + error.message, true);
+          setSyncMessage('Không thể kết nối máy chủ. Vui lòng thử lại sau.', true);
           if (!silent) console.warn(error);
         } finally { readBusy = false; }
       }
@@ -117,7 +117,7 @@
             for(const saved of formBefore){const el=saved.id?document.getElementById(saved.id):saved.el;if(el){el.value=saved.value;el.checked=saved.checked;}}
             for(const saved of dialogsBefore)saved.el.classList.toggle('hidden',saved.hidden);
             ready=false;
-            setSyncMessage(error.message + ' Dữ liệu nhập được giữ để thử lại.', true);
+            setSyncMessage('Chưa lưu được thay đổi. Dữ liệu vẫn được giữ để bạn thử lại.', true);
             showToast(error.message, 'warn');
           } finally { writeBusy = false; }
           if (!ready) void syncFromSupabase(true);

@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Keep the customer booking flow calm and easy to scan. */
+#sync-message {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  padding: .65rem 1rem;
+  border-bottom: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: .875rem;
+}
+#admin-nav-bar nav { background: #f8fafc; border-color: #e2e8f0; }
+#admin-nav-bar .nav-tab-btn:not(.bg-emerald-500) { color: #475569 !important; }
+#admin-nav-bar .nav-tab-btn:not(.bg-emerald-500):hover { color: #0f172a !important; background: #f1f5f9 !important; }
+#customer-portal .shadow-xs, #customer-portal .shadow-md { box-shadow: none; }
+#customer-portal .rounded-2xl { border-radius: .875rem; }

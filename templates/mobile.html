@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>SmashCourt Pro — Quản Lý Sân Cầu Lông & POS Dịch Vụ</title>
+  <title>Đặt sân cầu lông SmashCourt</title>
   <link rel="stylesheet" href="assets/styles.css" />
   <script src="assets/chart.umd.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,28 +55,12 @@
  *,::before,::after{box-sizing:border-box}
  button,input,select{min-height:44px} button[data-matrix-slot-court]{min-height:44px}
  [role=dialog] button{min-width:44px} button:focus-visible{outline:3px solid #059669;outline-offset:2px}
- #pending-orders{margin-top:1rem} #sync-message{position:sticky;top:0;z-index:60;padding:.65rem;background:#fef3c7;color:#78350f;font-size:.8rem}
+ #pending-orders{margin-top:1rem} #sync-message{position:sticky;top:0;z-index:60;padding:.65rem 1rem;border-bottom:1px solid #fecaca;background:#fef2f2;color:#991b1b;font-size:.875rem}
  </style></head>
 <body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-900 antialiased">
-<div id="sync-message" role="status">Đang kết nối máy chủ…</div>
+<div id="sync-message" role="status" hidden></div>
 
-  <div class="bg-slate-950 text-slate-300 py-1.5 px-3.5 text-xs border-b border-slate-800 flex items-center justify-between">
-    <div class="flex items-center gap-1.5 min-w-0">
-      <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot shrink-0"></span>
-      <span class="font-bold text-white text-[11px] truncate">📱 SmashCourt Pro • Bản Điện Thoại</span>
-    </div>
-    <div class="flex items-center gap-2 shrink-0">
-      <a href="pc.html" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition shadow-xs">
-        <span>💻 Mở Bản PC</span>
-      </a>
-      <a href="index.html" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 text-[11px] transition">
-        <span>🌐 Tự Động</span>
-      </a>
-    </div>
-  </div>
-  
-
-  <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md border-b border-slate-800">
+  <header class="bg-white text-slate-900 sticky top-0 z-50 border-b border-slate-200">
     <div class="w-full px-3 py-2.5">
       <div class="flex items-center justify-between gap-2">
         <!-- Brand Logo -->
@@ -90,31 +74,26 @@
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="font-black text-base tracking-tight text-white leading-none">SmashCourt<span class="text-emerald-400">Pro</span></span>
-              <span id="role-mode-badge" class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Khách</span>
-              <span id="supabase-status-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[10px] font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span><span>Realtime Cloud</span></span>
+              <span class="font-black text-base tracking-tight text-slate-900 leading-none">SmashCourt</span>
+              <span id="role-mode-badge" class="hidden">Khách</span>
+              <span id="supabase-status-badge" class="hidden" aria-live="polite"></span>
             </div>
-            <p class="text-[10px] text-slate-400 mt-0.5 truncate">📍 11 Lê Khôi • 4 Sân BWF • <a href="tel:0988412889" class="text-emerald-400 font-bold">0988.412.889</a></p>
+            <p class="mt-0.5 text-xs text-slate-600 truncate">11 Lê Khôi · <a href="tel:0988412889" class="text-slate-700">0988 412 889</a></p>
           </div>
         </div>
 
         <!-- Right Controls -->
         <div class="flex items-center gap-1.5 shrink-0">
           <!-- Button shown when NOT logged in as Admin -->
-          <button type="button" id="btn-open-admin-login" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 text-xs font-bold flex items-center gap-1 transition shadow-xs">
+          <button type="button" id="btn-open-admin-login" class="px-2.5 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-300 text-xs font-semibold flex items-center gap-1 transition">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
             <span>Quản Lý</span>
           </button>
 
           <!-- Controls shown ONLY when logged in as Admin -->
           <div id="admin-header-controls" class="hidden flex items-center gap-1">
-            <button type="button" id="btn-toggle-customer-preview" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium">
-              Xem Khách
-            </button>
-            
-            <button type="button" id="btn-admin-logout" class="px-2 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-medium">
-              Thoát
-            </button>
+            <button type="button" id="btn-toggle-customer-preview" class="px-2 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-300 text-[11px] font-semibold transition">Giao diện khách</button>
+            <button type="button" id="btn-admin-logout" class="px-2 py-1.5 rounded-lg bg-white text-rose-700 border border-slate-300 text-[11px] font-semibold transition">Đăng xuất</button>
           </div>
         </div>
       </div>
@@ -124,7 +103,7 @@
 
       <!-- Primary Admin Navigation Tabs -->
       <div id="admin-nav-bar" class="hidden pb-2 pt-1 border-t border-slate-800/80 mt-1">
-        <nav class="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700/70 overflow-x-auto max-w-full custom-scrollbar" aria-label="Điều hướng chính">
+        <nav class="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full custom-scrollbar" aria-label="Điều hướng chính">
           <button type="button" data-nav="courts" class="nav-tab-btn px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 bg-emerald-500 text-slate-950 shadow-xs whitespace-nowrap">
             <span>Sơ đồ Sân</span>
             <span id="badge-active-courts" class="px-1.5 py-0.2 text-[10px] rounded-full bg-slate-950/20 font-bold">4/8</span>
@@ -147,16 +126,16 @@
       </div>
     </div>
   </header>
-  
+
 
   <section id="customer-portal" class="flex-1 w-full max-w-lg mx-auto px-3 py-3 pb-28 space-y-3.5">
     <!-- Top Segmented Switch -->
     <div class="bg-white p-1 rounded-xl shadow-xs border border-slate-200 grid grid-cols-2 gap-1">
       <button type="button" data-cust-tab="book" class="cust-tab-btn py-2 px-2 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow-xs transition">
-        <span>🏸 Đặt Lịch Sân</span>
+        <span>Đặt sân</span>
       </button>
       <button type="button" data-cust-tab="shop" class="cust-tab-btn py-2 px-2 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-100 transition">
-        <span>🥤 Mua Nước & Đồ</span>
+        <span>Mua đồ</span>
         <span id="cust-shop-badge" class="hidden px-1.5 py-0.2 rounded-full text-[10px] bg-amber-400 text-slate-950 font-black">0</span>
       </button>
     </div>
@@ -164,28 +143,19 @@
     <!-- TAB KHÁCH 1: ĐẶT LỊCH SÂN (MOBILE FIRST FLOW) -->
     <div id="cust-view-book" class="space-y-3.5">
       <!-- Club Intro Card -->
-      <div class="bg-gradient-to-r from-emerald-700 to-teal-700 text-white p-3 rounded-xl shadow-sm space-y-2">
+      <div class="bg-white py-2 border-b border-slate-200 space-y-2">
         <div class="flex items-center justify-between gap-2">
-          <h1 class="text-xs sm:text-sm font-black tracking-tight">🏸 Đặt Sân Cầu Lông</h1>
-          <span id="cust-club-date-badge" class="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md border border-white/20 whitespace-nowrap">Hôm nay</span>
+          <h1 class="text-sm font-semibold tracking-tight">Đặt sân</h1>
+          <span id="cust-club-date-badge" class="hidden">Hôm nay</span>
         </div>
-        <div class="grid grid-cols-2 gap-2 text-xs">
-          <div class="bg-slate-950/20 px-2.5 py-1.5 rounded-lg border border-white/10 flex items-center justify-between">
-            <span class="text-emerald-100 font-medium text-[11px]">Giờ thường</span>
-            <strong class="text-white font-black text-xs">60k/h</strong>
-          </div>
-          <div class="bg-amber-400/20 px-2.5 py-1.5 rounded-lg border border-amber-300/30 flex items-center justify-between">
-            <span class="text-amber-100 font-medium text-[11px]">Tối 17h–21h</span>
-            <strong class="text-amber-300 font-black text-xs">80k/h</strong>
-          </div>
-        </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600"><span>Giờ thường <strong class="font-semibold text-slate-900">60.000đ/giờ</strong></span><span>17h–21h <strong class="font-semibold text-slate-900">80.000đ/giờ</strong></span></div>
       </div>
 
       <!-- ALOBO-STYLE INTERACTIVE COURT X TIME MATRIX -->
       <div class="bg-white p-3 rounded-xl shadow-xs border border-slate-200/90 space-y-2.5">
         <!-- Section Header: Title & Quick Day Switcher -->
         <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-          <h2 class="text-xs font-black uppercase tracking-wider text-slate-900">Bảng Đặt Lịch</h2>
+          <h2 class="text-sm font-semibold text-slate-900">Chọn giờ chơi</h2>
           <!-- Quick Day Switcher Pills -->
           <div class="flex items-center gap-1 overflow-x-auto custom-scrollbar">
             <button type="button" data-cust-day="today" class="cust-day-btn px-2 py-1 rounded-lg text-[10px] font-black bg-emerald-600 text-white shadow-xs whitespace-nowrap">Hôm nay</button>
@@ -194,22 +164,22 @@
           </div>
         </div>
 
-        <p class="text-[11px] text-slate-500">👉 Nhấp vào ô trống để chọn giờ • Vuốt ngang để xem ca tối</p>
+        <p class="text-[11px] text-slate-500">Chọn giờ trống để đặt sân.</p>
 
         <!-- Fast Jump Bar on Mobile -->
         <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-0.5">
-          <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap">⚡ Nhảy nhanh:</span>
-          <button type="button" data-matrix-jump="05:00" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold whitespace-nowrap">🌅 5h</button>
-          <button type="button" data-matrix-jump="12:00" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold whitespace-nowrap">☀️ 12h</button>
-          <button type="button" data-matrix-jump="17:00" class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold whitespace-nowrap">🌙 17h</button>
+          <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap">Đến:</span>
+          <button type="button" data-matrix-jump="05:00" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold whitespace-nowrap">5h</button>
+          <button type="button" data-matrix-jump="12:00" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold whitespace-nowrap">12h</button>
+          <button type="button" data-matrix-jump="17:00" class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold whitespace-nowrap">17h</button>
         </div>
 
         <!-- Matrix Table Wrapper with smooth horizontal swipe and sticky left court -->
-        <div id="cust-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar -mx-1 rounded-xl border border-[#c4ded7] shadow-xs relative bg-white">
-          <table class="w-full text-left border-collapse min-w-[1880px]">
-            <thead class="bg-[#c0ebfb] text-[#0e362e] border-b border-[#cadfe8]">
-              <tr id="cust-alobo-matrix-header" class="bg-[#c0ebfb] text-[#0e362e] h-10">
-                <th class="w-20 min-w-[76px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-10 p-0"></th>
+        <div id="cust-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar -mx-1 rounded-xl border border-[#e2e8f0] shadow-xs relative bg-white">
+          <table class="w-full text-left border-collapse min-w-[1700px]">
+            <thead class="bg-[#f1f5f9] text-[#334155] border-b border-[#e2e8f0]">
+              <tr id="cust-alobo-matrix-header" class="bg-[#f1f5f9] text-[#334155] h-10">
+                <th class="w-20 min-w-[76px] sticky left-0 bg-[#f1f5f9] z-20 border-r-2 border-[#cbd5e1] h-10 p-0"></th>
               </tr>
             </thead>
             <tbody id="cust-alobo-matrix-body" class="text-xs bg-white"></tbody>
@@ -250,7 +220,7 @@
 
         <div class="space-y-2 pt-1 border-t border-slate-100">
           <div class="flex items-center justify-between">
-            <label class="block text-xs font-bold text-slate-700">Chuẩn bị sẵn tại sân:</label>
+            <label class="block text-xs font-bold text-slate-700">Mua thêm (không bắt buộc)</label>
             <button type="button" id="btn-open-addon-picker" class="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1 cursor-pointer">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
               <span>Thêm Nước / Cầu</span>
@@ -266,16 +236,16 @@
             <p id="cust-book-total-preview" class="text-lg font-black text-emerald-600">0đ</p>
           </div>
           <button type="submit" id="btn-cust-submit-booking" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-sm transition">
-            Xác Nhận Đặt Sân Ngay
+            Đặt sân
           </button>
         </div>
       </form>
 
       <!-- Recent Customer Bookings Ticket List -->
-      <div id="cust-my-bookings-box" class="bg-white p-3.5 rounded-xl shadow-xs border border-slate-200/90 space-y-2">
+      <div id="cust-my-bookings-box" class="hidden bg-white p-3.5 rounded-xl border border-slate-200/90 space-y-2">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-black uppercase tracking-wider text-slate-800">Lịch đã đặt gần đây</span>
-          <span class="text-[10px] text-emerald-600 font-bold">Đã đồng bộ Lễ tân</span>
+          <span class="text-xs font-black uppercase tracking-wider text-slate-800">Lịch đặt gần đây</span>
+          <span class="text-[10px] text-emerald-600 font-bold"></span>
         </div>
         <div id="cust-my-bookings-list" class="space-y-2"></div>
       </div>
@@ -339,7 +309,7 @@
       </div>
     </div>
   </section>
-  
+
 <div id="admin-workspace" class="hidden flex-1 flex flex-col">
 <label class="block px-4 pt-4 font-bold text-sm" for="admin-schedule-date">Ngày xem lịch quản trị</label><input class="mx-4 border rounded px-3 py-2" id="admin-schedule-date" type="date" />
 <section id="pending-orders" class="p-4" aria-label="Đơn hàng chờ xác nhận"></section>
@@ -349,7 +319,7 @@
       <!-- Slim Header Bar to Toggle Quick Shortcuts -->
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 text-xs text-slate-600">
-          <span class="font-bold text-slate-800">⚡ Lối tắt quản lý nhanh</span>
+          <span class="font-bold text-slate-800">Tổng quan</span>
           <span class="hidden sm:inline text-slate-400">• Bấm vào từng ô để mở nhanh mục tương ứng</span>
         </div>
         <button type="button" id="btn-toggle-kpi-strip" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold flex items-center gap-1 transition">
@@ -423,7 +393,7 @@
         <div class="flex flex-wrap items-center gap-2">
           <!-- Status Filter Buttons -->
           <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
-            <button type="button" data-court-filter="all" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-xs transition">Tất cả (8)</button>
+            <button type="button" data-court-filter="all" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-xs transition">Tất cả (4)</button>
             <button type="button" data-court-filter="active" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Đang chơi</button>
             <button type="button" data-court-filter="free" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Sân trống</button>
             <button type="button" data-court-filter="reserved" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Đã đặt</button>
@@ -435,16 +405,7 @@
         </div>
       </div>
 
-      <!-- Pricing Info Banner -->
-      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs">
-        <div class="flex flex-wrap items-center gap-4">
-          <span class="font-semibold text-emerald-400">Bảng giá sân:</span>
-          <span>• Giờ tối (17:00 – 21:00): <strong class="text-white">80.000đ/giờ</strong></span>
-          <span>• Các khung giờ khác: <strong class="text-white">60.000đ/giờ</strong></span>
-          <span>• Quy mô: <strong class="text-emerald-300">2 Sân thảm xanh (Sân 1, 2) & 2 Sân thảm xám (Sân 3, 4)</strong></span>
-        </div>
-        <span class="text-slate-400">Tự động tính tiền theo số giờ thực tế và gộp hóa đơn nước/quấn cán</span>
-      </div>
+      <p class="text-sm text-slate-600">Giờ thường: <strong class="text-slate-900">60.000đ/giờ</strong> · 17h–21h: <strong class="text-slate-900">80.000đ/giờ</strong></p>
 
       <!-- 8 Courts Grid -->
       <div id="courts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
@@ -570,11 +531,11 @@
         </div>
 
         <!-- Scrollable Matrix Table -->
-        <div id="admin-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar rounded-xl border border-[#c4ded7] shadow-xs relative bg-white">
+        <div id="admin-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar rounded-xl border border-[#e2e8f0] shadow-xs relative bg-white">
           <table class="w-full text-left border-collapse min-w-[2160px]">
-            <thead class="bg-[#c0ebfb] text-[#0e362e] border-b border-[#cadfe8]">
-              <tr id="admin-alobo-matrix-header" class="bg-[#c0ebfb] text-[#0e362e] h-11">
-                <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0 text-center font-black text-xs text-[#0e362e] uppercase tracking-wider">SÂN</th>
+            <thead class="bg-[#f1f5f9] text-[#334155] border-b border-[#e2e8f0]">
+              <tr id="admin-alobo-matrix-header" class="bg-[#f1f5f9] text-[#334155] h-11">
+                <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#f1f5f9] z-20 border-r-2 border-[#cbd5e1] h-11 p-0 text-center font-black text-xs text-[#334155] uppercase tracking-wider">SÂN</th>
               </tr>
             </thead>
             <tbody id="admin-alobo-matrix-body" class="text-xs bg-white"></tbody>
@@ -584,13 +545,13 @@
         <!-- Fast Time Jump Bar & Scroll Navigation for Admin -->
         <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
           <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[11px] font-bold text-slate-500">⚡ Xem nhanh:</span>
-            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌅 Sáng (5h)</button>
-            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">☀️ Trưa (12h)</button>
-            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌙 Tối vàng (17h)</button>
+            <span class="text-[11px] font-bold text-slate-500">Đến:</span>
+            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Sáng</button>
+            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Trưa</button>
+            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Chiều tối</button>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-[11px] text-slate-400 hidden sm:inline">🖱️ Lăn chuột / kéo rê để lướt</span>
+
             <div class="flex items-center gap-1">
               <button type="button" id="btn-admin-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
               <button type="button" id="btn-admin-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
@@ -728,9 +689,9 @@
   </div>
 
     <!-- ==================== MODAL: CHỌN THÊM NƯỚC & PHỤ KIỆN KHI ĐẶT SÂN ==================== -->
-  
 
-  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-1.5 shadow-2xl">
+
+  <nav id="customer-bottom-nav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-1.5 shadow-2xl">
     <div class="max-w-md mx-auto grid grid-cols-4 gap-1 text-center">
       <button type="button" onclick="document.querySelector('[data-cust-tab=book]').click(); window.scrollTo({top:0, behavior:'smooth'});" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-emerald-600 font-black text-[10px] active:scale-95 transition">
         <span class="text-base leading-tight">🏸</span>
@@ -740,9 +701,9 @@
         <span class="text-base leading-tight">🥤</span>
         <span>Menu Nước</span>
       </button>
-      <button type="button" onclick="document.getElementById('cust-my-bookings-box').scrollIntoView({behavior:'smooth'});" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-slate-600 font-bold text-[10px] active:scale-95 transition">
+      <button type="button" onclick="document.getElementById('cust-my-bookings-box').classList.remove('hidden'); document.getElementById('cust-my-bookings-box').scrollIntoView({behavior:'smooth'});" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-slate-600 font-bold text-[10px] active:scale-95 transition">
         <span class="text-base leading-tight">📋</span>
-        <span>Lịch Đã Đặt</span>
+        <span>Lịch đặt</span>
       </button>
       <button type="button" onclick="document.getElementById('btn-open-admin-login').click();" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-slate-600 font-bold text-[10px] active:scale-95 transition">
         <span class="text-base leading-tight">👑</span>
@@ -750,7 +711,7 @@
       </button>
     </div>
   </nav>
-  
+
 <div role="dialog" aria-modal="true" tabindex="-1" id="modal-cust-addon-picker" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
       <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
@@ -1089,7 +1050,7 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  
+
 <!-- APP_SCRIPT -->
 </body>
 </html>

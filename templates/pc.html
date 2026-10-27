@@ -557,7 +557,7 @@
         <div class="flex items-center gap-2">
           <button type="button" id="btn-open-new-booking" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>+ Tạo Lịch Đặt Sân Mới</span>
+            <span>Tạo lịch mới</span>
           </button>
         </div>
       </div>
@@ -567,10 +567,9 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5 sm:pb-3">
           <div>
             <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-              <span>📅 Ma Trận Lịch Đặt Sân Toàn Hệ Thống (05:00 - 23:00)</span>
-              <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">Hiển thị trực tiếp Tên Khách</span>
+              <span>Lịch sân · 05:00–23:00</span>
             </h3>
-            <p class="text-xs text-slate-500 mt-0.5">Nhìn trực tiếp biết ai đặt khung giờ nào • Bấm vào ô trống để đặt nhanh • Bấm vào ô đã đặt để xem / nhận sân</p>
+            <p class="text-xs text-slate-500 mt-0.5">Ô trống: tạo lịch · Ô đã đặt: xem hoặc nhận sân</p>
           </div>
           <div class="flex items-center gap-3 sm:gap-4 flex-wrap text-[11px] sm:text-xs">
             <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-600"></span> Đang đánh</span>
@@ -595,13 +594,13 @@
         <!-- Fast Time Jump Bar & Scroll Navigation for Admin -->
         <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
           <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[11px] font-bold text-slate-500">⚡ Xem nhanh:</span>
-            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌅 Sáng (5h)</button>
-            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">☀️ Trưa (12h)</button>
-            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌙 Tối vàng (17h)</button>
+            <span class="text-[11px] font-semibold text-slate-500">Đến:</span>
+            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Sáng</button>
+            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Trưa</button>
+            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition cursor-pointer">Tối</button>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-[11px] text-slate-400 hidden sm:inline">🖱️ Lăn chuột / kéo rê để lướt</span>
+            <span class="text-[11px] text-slate-500 hidden sm:inline">Vuốt, kéo hoặc dùng mũi tên</span>
             <div class="flex items-center gap-1">
               <button type="button" id="btn-admin-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
               <button type="button" id="btn-admin-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>

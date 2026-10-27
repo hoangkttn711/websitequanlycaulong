@@ -557,7 +557,7 @@
         <div class="flex items-center gap-2">
           <button type="button" id="btn-open-new-booking" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>+ Tạo Lịch Đặt Sân Mới</span>
+            <span>Tạo lịch mới</span>
           </button>
         </div>
       </div>
@@ -567,10 +567,9 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5 sm:pb-3">
           <div>
             <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-              <span>📅 Ma Trận Lịch Đặt Sân Toàn Hệ Thống (05:00 - 23:00)</span>
-              <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">Hiển thị trực tiếp Tên Khách</span>
+              <span>Lịch sân · 05:00–23:00</span>
             </h3>
-            <p class="text-xs text-slate-500 mt-0.5">Nhìn trực tiếp biết ai đặt khung giờ nào • Bấm vào ô trống để đặt nhanh • Bấm vào ô đã đặt để xem / nhận sân</p>
+            <p class="text-xs text-slate-500 mt-0.5">Ô trống: tạo lịch · Ô đã đặt: xem hoặc nhận sân</p>
           </div>
           <div class="flex items-center gap-3 sm:gap-4 flex-wrap text-[11px] sm:text-xs">
             <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-600"></span> Đang đánh</span>
@@ -595,13 +594,13 @@
         <!-- Fast Time Jump Bar & Scroll Navigation for Admin -->
         <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
           <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[11px] font-bold text-slate-500">⚡ Xem nhanh:</span>
-            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌅 Sáng (5h)</button>
-            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">☀️ Trưa (12h)</button>
-            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌙 Tối vàng (17h)</button>
+            <span class="text-[11px] font-semibold text-slate-500">Đến:</span>
+            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Sáng</button>
+            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Trưa</button>
+            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition cursor-pointer">Tối</button>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-[11px] text-slate-400 hidden sm:inline">🖱️ Lăn chuột / kéo rê để lướt</span>
+            <span class="text-[11px] text-slate-500 hidden sm:inline">Vuốt, kéo hoặc dùng mũi tên</span>
             <div class="flex items-center gap-1">
               <button type="button" id="btn-admin-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
               <button type="button" id="btn-admin-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
@@ -1656,21 +1655,32 @@
         const adminBody = document.getElementById('admin-alobo-matrix-body');
         if (adminBody) {
           adminBody.innerHTML = state.courts.map(court => {
-            const slotCells = aloboSlots.map(slot => {
+            const courtBookings = state.bookings
+              .filter(booking => Number(booking.courtId) === court.id && bookingOnDay(booking))
+              .map(booking => ({ booking, ranges: bookingRanges(booking) }))
+              .filter(entry => entry.ranges.length)
+              .sort((a, b) => a.ranges[0].startMin - b.ranges[0].startMin);
+            const slotCells = [];
+
+            for (let slotIndex = 0; slotIndex < aloboSlots.length;) {
+              const slot = aloboSlots[slotIndex];
               const slotStartMin = timeToMinutes(slot.start);
               const slotEndMin = timeToMinutes(slot.end);
-
-              // Tìm đơn đặt bao phủ khung giờ này
-              const booking = state.bookings.find(b => {
-                if (Number(b.courtId) !== court.id || !bookingOnDay(b)) return false;
-                return conflicts(b, slotStartMin, slotEndMin);
-              });
-
-              // Sân đang có khách đánh (active)
-              const isCourtActive = court.status === 'active' && isToday && (slotStartMin <= currentMin && slotEndMin >= currentMin);
+              const slotRange = { startMin: slotStartMin, endMin: slotEndMin };
+              const bookingEntry = courtBookings.find(entry => entry.ranges.some(range => Core.overlap(range, slotRange)));
+              const booking = bookingEntry?.booking;
 
               if (booking) {
-                // Admin nhìn vào là thấy NGAY AI ĐẶT!
+                let colspan = 1;
+                while (slotIndex + colspan < aloboSlots.length) {
+                  const next = aloboSlots[slotIndex + colspan];
+                  const nextRange = { startMin: timeToMinutes(next.start), endMin: timeToMinutes(next.end) };
+                  if (!bookingEntry.ranges.some(range => Core.overlap(range, nextRange))) break;
+                  colspan++;
+                }
+
+                const isCourtActive = court.status === 'active' && isToday
+                  && bookingEntry.ranges.some(range => currentMin >= range.startMin && currentMin < range.endMin);
                 let bgStyle = 'bg-amber-100 hover:bg-amber-200 border-r border-amber-300 text-amber-950 font-bold';
                 let tagText = booking.deposit ? formatVND(booking.deposit) : 'Đã đặt';
                 if (booking.status === 'checked_in' || isCourtActive) {
@@ -1681,22 +1691,26 @@
                   tagText = 'Đã xong';
                 }
 
-                return `
-                  <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
+                slotCells.push(`
+                  <td colspan="${colspan}" class="h-11 sm:h-12 border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
                     <button type="button" data-admin-booking-id="${Core.escapeHTML(booking.id)}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="Khách: ${Core.escapeHTML(booking.customer)} • SĐT: ${Core.escapeHTML(booking.phone || 'Chưa có')} • ${Core.escapeHTML(booking.slot)} • Cọc: ${formatVND(booking.deposit)} • Bấm để xem / nhận sân">
                       <span class="font-black text-[11px] truncate w-full px-0.5 text-center leading-tight">${Core.escapeHTML(booking.customer)}</span>
                       <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${Core.escapeHTML(booking.phone ? booking.phone.slice(-4) : tagText)}</span>
                     </button>
                   </td>
-                `;
+                `);
+                slotIndex += colspan;
+                continue;
               }
 
               if (court.status === 'maintenance') {
-                return `
+                slotCells.push(`
                   <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 bg-rose-50 p-0 text-center select-none text-rose-700 font-bold text-[10px]">
                     <div class="w-full h-full flex items-center justify-center">Bảo trì</div>
                   </td>
-                `;
+                `);
+                slotIndex++;
+                continue;
               }
 
               // Khung giờ còn trống -> Admin bấm vào để ĐẶT LỊCH NHANH cho khách!
@@ -1704,14 +1718,15 @@
               const cellBg = isPast ? 'bg-slate-50/70 hover:bg-emerald-50/70' : 'bg-white hover:bg-emerald-50/80';
               const plusColor = isPast ? 'text-slate-300' : 'text-slate-400 group-hover:text-emerald-600';
 
-              return `
+              slotCells.push(`
                 <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 ${cellBg} p-0 text-center select-none transition-colors group">
                   <button type="button" data-quick-slot-court="${Core.escapeHTML(court.id)}" data-quick-slot-time="${slot.start}" data-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center cursor-pointer" title="${slot.start} - ${slot.end} (${Core.escapeHTML(court.name)} còn trống • Bấm để đặt)">
-                    <span class="${plusColor} text-[11px] font-bold transition-all transform group-hover:scale-125">+</span>
+                    <span class="${plusColor} text-[11px] font-bold transition-all transform opacity-0 group-hover:opacity-100 group-hover:scale-125">+</span>
                   </button>
                 </td>
-              `;
-            }).join('');
+              `);
+              slotIndex++;
+            }
 
             const isGreyCourt = court.matColor === 'grey' || court.id >= 3;
             const courtMatGradient = isGreyCourt
@@ -1740,7 +1755,7 @@
                     <span class="text-[8.5px] sm:text-[9px] font-bold ${subTextColor} leading-none mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">${courtTypeLabel}</span>
                   </div>
                 </td>
-                ${slotCells}
+                ${slotCells.join('')}
               </tr>
             `;
           }).join('');

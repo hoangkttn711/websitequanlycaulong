@@ -496,21 +496,32 @@
         const adminBody = document.getElementById('admin-alobo-matrix-body');
         if (adminBody) {
           adminBody.innerHTML = state.courts.map(court => {
-            const slotCells = aloboSlots.map(slot => {
+            const courtBookings = state.bookings
+              .filter(booking => Number(booking.courtId) === court.id && bookingOnDay(booking))
+              .map(booking => ({ booking, ranges: bookingRanges(booking) }))
+              .filter(entry => entry.ranges.length)
+              .sort((a, b) => a.ranges[0].startMin - b.ranges[0].startMin);
+            const slotCells = [];
+
+            for (let slotIndex = 0; slotIndex < aloboSlots.length;) {
+              const slot = aloboSlots[slotIndex];
               const slotStartMin = timeToMinutes(slot.start);
               const slotEndMin = timeToMinutes(slot.end);
-
-              // Tìm đơn đặt bao phủ khung giờ này
-              const booking = state.bookings.find(b => {
-                if (Number(b.courtId) !== court.id || !bookingOnDay(b)) return false;
-                return conflicts(b, slotStartMin, slotEndMin);
-              });
-
-              // Sân đang có khách đánh (active)
-              const isCourtActive = court.status === 'active' && isToday && (slotStartMin <= currentMin && slotEndMin >= currentMin);
+              const slotRange = { startMin: slotStartMin, endMin: slotEndMin };
+              const bookingEntry = courtBookings.find(entry => entry.ranges.some(range => Core.overlap(range, slotRange)));
+              const booking = bookingEntry?.booking;
 
               if (booking) {
-                // Admin nhìn vào là thấy NGAY AI ĐẶT!
+                let colspan = 1;
+                while (slotIndex + colspan < aloboSlots.length) {
+                  const next = aloboSlots[slotIndex + colspan];
+                  const nextRange = { startMin: timeToMinutes(next.start), endMin: timeToMinutes(next.end) };
+                  if (!bookingEntry.ranges.some(range => Core.overlap(range, nextRange))) break;
+                  colspan++;
+                }
+
+                const isCourtActive = court.status === 'active' && isToday
+                  && bookingEntry.ranges.some(range => currentMin >= range.startMin && currentMin < range.endMin);
                 let bgStyle = 'bg-amber-100 hover:bg-amber-200 border-r border-amber-300 text-amber-950 font-bold';
                 let tagText = booking.deposit ? formatVND(booking.deposit) : 'Đã đặt';
                 if (booking.status === 'checked_in' || isCourtActive) {
@@ -521,22 +532,26 @@
                   tagText = 'Đã xong';
                 }
 
-                return `
-                  <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
+                slotCells.push(`
+                  <td colspan="${colspan}" class="h-11 sm:h-12 border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
                     <button type="button" data-admin-booking-id="${booking.id}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="Khách: ${booking.customer} • SĐT: ${booking.phone || 'Chưa có'} • ${booking.slot} • Cọc: ${formatVND(booking.deposit)} • Bấm để xem / nhận sân">
                       <span class="font-black text-[11px] truncate w-full px-0.5 text-center leading-tight">${booking.customer}</span>
                       <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${booking.phone ? booking.phone.slice(-4) : tagText}</span>
                     </button>
                   </td>
-                `;
+                `);
+                slotIndex += colspan;
+                continue;
               }
 
               if (court.status === 'maintenance') {
-                return `
+                slotCells.push(`
                   <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 bg-rose-50 p-0 text-center select-none text-rose-700 font-bold text-[10px]">
                     <div class="w-full h-full flex items-center justify-center">Bảo trì</div>
                   </td>
-                `;
+                `);
+                slotIndex++;
+                continue;
               }
 
               // Khung giờ còn trống -> Admin bấm vào để ĐẶT LỊCH NHANH cho khách!
@@ -544,14 +559,15 @@
               const cellBg = isPast ? 'bg-slate-50/70 hover:bg-emerald-50/70' : 'bg-white hover:bg-emerald-50/80';
               const plusColor = isPast ? 'text-slate-300' : 'text-slate-400 group-hover:text-emerald-600';
 
-              return `
+              slotCells.push(`
                 <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 ${cellBg} p-0 text-center select-none transition-colors group">
                   <button type="button" data-quick-slot-court="${court.id}" data-quick-slot-time="${slot.start}" data-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • Bấm để đặt)">
-                    <span class="${plusColor} text-[11px] font-bold transition-all transform group-hover:scale-125">+</span>
+                    <span class="${plusColor} text-[11px] font-bold transition-all transform opacity-0 group-hover:opacity-100 group-hover:scale-125">+</span>
                   </button>
                 </td>
-              `;
-            }).join('');
+              `);
+              slotIndex++;
+            }
 
             const isGreyCourt = court.matColor === 'grey' || court.id >= 3;
             const courtMatGradient = isGreyCourt
@@ -580,7 +596,7 @@
                     <span class="text-[8.5px] sm:text-[9px] font-bold ${subTextColor} leading-none mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">${courtTypeLabel}</span>
                   </div>
                 </td>
-                ${slotCells}
+                ${slotCells.join('')}
               </tr>
             `;
           }).join('');

@@ -104,6 +104,10 @@
       }
 
       let state = loadState();
+      let adminScheduleSelection = new Map();
+      let bookingListSearch = '';
+      let bookingListDate = '';
+      let bookingListStatus = 'all';
       let weeklyChartInstance = null;
       let categoryChartInstance = null;
 
@@ -512,7 +516,7 @@
         if (adminBody) {
           adminBody.innerHTML = state.courts.map(court => {
             const courtBookings = state.bookings
-              .filter(booking => Number(booking.courtId) === court.id && bookingOnDay(booking))
+              .filter(booking => Number(booking.courtId) === court.id && booking.bookingDate === selectedDate() && ['reserved','checked_in','completed'].includes(booking.status))
               .map(booking => ({ booking, ranges: bookingRanges(booking) }))
               .filter(entry => entry.ranges.length)
               .sort((a, b) => a.ranges[0].startMin - b.ranges[0].startMin);
@@ -535,7 +539,7 @@
                   colspan++;
                 }
 
-                const isCourtActive = court.status === 'active' && isToday
+                const isCourtActive = booking.status !== 'completed' && court.status === 'active' && isToday
                   && bookingEntry.ranges.some(range => currentMin >= range.startMin && currentMin < range.endMin);
                 const isWaiting = booking.status === 'checked_in' && isBookingAwaitingStart(booking);
                 let bgStyle = 'bg-amber-100 hover:bg-amber-200 border-r border-amber-300 text-amber-950 font-bold';
@@ -555,9 +559,9 @@
 
                 slotCells.push(`
                   <td colspan="${colspan}" class="h-11 sm:h-12 border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
-                    <button type="button" data-admin-booking-id="${booking.id}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="Khách: ${booking.customer} • SĐT: ${booking.phone || 'Chưa có'} • ${booking.slot} • Cọc: ${formatVND(booking.deposit)} • Bấm để xem / nhận sân">
+                    <button type="button" ${booking.status === 'completed' ? '' : `data-admin-booking-id="${booking.id}"`} class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight ${booking.status === 'completed' ? 'cursor-default' : 'cursor-pointer overflow-hidden transition-opacity hover:opacity-90'}" title="${booking.status === 'completed' ? 'Đã hoàn tất' : 'Bấm để nhận sân'} • ${booking.slot} • Cọc: ${formatVND(booking.deposit)}">
                       <span class="font-black text-[11px] truncate w-full px-0.5 text-center leading-tight">${booking.customer}</span>
-                      <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${isWaiting ? tagText : booking.phone ? booking.phone.slice(-4) : tagText}</span>
+                      <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${booking.status === 'completed' || isWaiting ? tagText : booking.phone ? booking.phone.slice(-4) : tagText}</span>
                     </button>
                   </td>
                 `);
@@ -577,13 +581,15 @@
 
               // Khung giờ còn trống -> Admin bấm vào để ĐẶT LỊCH NHANH cho khách!
               const isPast = isToday && (slotStartMin < currentMin);
-              const cellBg = isPast ? 'bg-slate-50/70 hover:bg-emerald-50/70' : 'bg-white hover:bg-emerald-50/80';
+              const selectionKey = `${court.id}|${slot.start}`;
+              const isSelectedForBooking = adminScheduleSelection.has(selectionKey);
+              const cellBg = isSelectedForBooking ? 'bg-sky-200 ring-2 ring-inset ring-sky-500' : (isPast ? 'bg-slate-50/70 hover:bg-emerald-50/70' : 'bg-white hover:bg-emerald-50/80');
               const plusColor = isPast ? 'text-slate-300' : 'text-slate-400 group-hover:text-emerald-600';
 
               slotCells.push(`
                 <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 ${cellBg} p-0 text-center select-none transition-colors group">
-                  <button type="button" data-quick-slot-court="${court.id}" data-quick-slot-time="${slot.start}" data-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • Bấm để đặt)">
-                    <span class="${plusColor} text-[11px] font-bold transition-all transform opacity-0 group-hover:opacity-100 group-hover:scale-125">+</span>
+                  <button type="button" data-quick-slot-court="${court.id}" data-quick-slot-time="${slot.start}" data-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • bấm để chọn ca)">
+                    <span class="${isSelectedForBooking ? 'text-sky-800' : plusColor} text-[11px] font-bold transition-all transform ${isSelectedForBooking ? '' : 'opacity-0 group-hover:opacity-100 group-hover:scale-125'}">${isSelectedForBooking ? '✓' : '+'}</span>
                   </button>
                 </td>
               `);
@@ -623,46 +629,145 @@
           }).join('');
         }
 
-        // 3. Render Bookings List Table
+        // 3. Render the searchable booking list across all rows in the server snapshot.
         const bookingsBody = document.getElementById('bookings-table-body');
         const countLabel = document.getElementById('booking-count-label');
-        if (countLabel) countLabel.textContent = `${state.bookings.length} lịch đặt`;
+        const search = bookingListSearch.trim().toLocaleLowerCase('vi');
+        const allBookings = state.bookings.slice().sort((a, b) => (b.bookingDate || '').localeCompare(a.bookingDate || '') || a.slot.localeCompare(b.slot));
+        const filteredBookings = allBookings.filter(b => {
+          if (bookingListDate && b.bookingDate !== bookingListDate) return false;
+          if (bookingListStatus !== 'all' && b.status !== bookingListStatus) return false;
+          if (!search) return true;
+          const court = state.courts.find(c => c.id === Number(b.courtId));
+          const dateText = b.bookingDate ? b.bookingDate.split('-').reverse().join('/') : '';
+          const statusText = {reserved:'Chờ nhận',checked_in:'Đang đánh',completed:'Đã xong',cancelled:'Đã hủy'}[b.status] || '';
+          const typeText = b.type === 'Cố định tháng' ? 'Khách cố định' : 'Vãng lai';
+          return [b.customer, b.phone, b.bookingDate, dateText, b.slot, b.type, typeText, statusText, formatVND(b.deposit), court?.name, court?.zone]
+            .some(value => String(value || '').toLocaleLowerCase('vi').includes(search));
+        });
+        if (countLabel) countLabel.textContent = filteredBookings.length === allBookings.length ? `${allBookings.length} phiếu` : `${filteredBookings.length}/${allBookings.length} phiếu`;
         if (bookingsBody) {
-          bookingsBody.innerHTML = state.bookings.filter(b => b.bookingDate === selectedDate() || !b.bookingDate).map(b => {
+          bookingsBody.innerHTML = filteredBookings.length ? filteredBookings.map(b => {
             const court = state.courts.find(c => c.id === Number(b.courtId));
             const courtName = court ? `${court.name} (${court.zone})` : `Sân ${b.courtId}`;
             const isWaiting = b.status === 'checked_in' && isBookingAwaitingStart(b);
             const statusText = isWaiting ? `Đã nhận · ${bookingStartTime(b)}` : ({checked_in:'Đang đánh',reserved:'Chờ nhận',cancelled:'Đã hủy',completed:'Đã xong'})[b.status] || 'Cần kiểm tra';
-
+            const statusClass = b.status === 'completed' ? 'bg-slate-100 text-slate-600' : b.status === 'cancelled' ? 'bg-rose-100 text-rose-700' : b.status === 'checked_in' && !isWaiting ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
             return `
-              <tr class="hover:bg-slate-50/80">
+              <tr class="${b.status === 'completed' ? 'bg-slate-50/70' : ''} hover:bg-slate-50/80">
                 <td class="py-3 px-4 font-bold text-slate-900">${b.customer}</td>
                 <td class="py-3 px-4 text-slate-600">${b.phone || '—'}</td>
+                <td class="py-3 px-4 text-slate-600 whitespace-nowrap">${b.bookingDate ? b.bookingDate.split('-').reverse().join('/') : 'Chưa có ngày'}</td>
                 <td class="py-3 px-4 font-semibold text-emerald-700">${courtName}</td>
                 <td class="py-3 px-4 font-bold text-slate-800">${b.slot}</td>
                 <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[11px] bg-slate-100 font-medium">${b.type === 'Cố định tháng' ? 'Khách cố định' : 'Vãng lai'}</span></td>
                 <td class="py-3 px-4 text-right font-bold text-emerald-600">${formatVND(b.deposit)}</td>
-                <td class="py-3 px-4">
-                  <span class="px-2 py-0.5 rounded text-[11px] font-bold ${b.status === 'checked_in' && !isWaiting ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                    ${statusText}${!b.bookingDate ? ' • Chưa có ngày' : ''}
-                  </span>
-                </td>
-                <td class="py-3 px-4 text-right">
-                  <div class="flex items-center justify-end gap-1.5">
-                    ${b.status === 'reserved' && b.bookingDate ? `
-                      <button type="button" data-booking-checkin="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs cursor-pointer">
-                        Nhận Sân
-                      </button>
-                    ` : ''}
-                    <button type="button" data-booking-cancel="${b.id}" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 font-semibold text-[11px] cursor-pointer">
-                      Hủy
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }).join('');
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${statusClass}">${statusText}${!b.bookingDate ? ' • Chưa có ngày' : ''}</span></td>
+                <td class="py-3 px-4 text-right"><div class="flex items-center justify-end gap-1.5">
+                  ${b.status === 'reserved' && b.bookingDate === Core.dateKey() ? `<button type="button" data-booking-checkin="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs cursor-pointer">Nhận Sân</button>` : ''}
+                  ${b.status === 'reserved' ? `<button type="button" data-booking-cancel="${b.id}" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 font-semibold text-[11px] cursor-pointer">Hủy</button>` : ''}
+                </div></td>
+              </tr>`;
+          }).join('') : '<tr><td colspan="9" class="py-8 px-4 text-center text-xs text-slate-500">Không tìm thấy phiếu đặt sân phù hợp.</td></tr>';
         }
+        updateAdminScheduleSelectionUI();
+      }
+
+      function updateAdminScheduleSelectionUI() {
+        const bar = document.getElementById('admin-schedule-selection-bar');
+        const label = document.getElementById('admin-schedule-selection-count');
+        if (!bar || !label) return;
+        const count = adminScheduleSelection.size;
+        const courtCount = new Set([...adminScheduleSelection.values()].map(item => item.courtId)).size;
+        bar.classList.toggle('hidden', count === 0);
+        label.textContent = `${count} khung giờ đã chọn trên ${courtCount} sân`;
+      }
+
+      function syncAdminBookingSelectionModal() {
+        const isBatch = adminScheduleSelection.size > 0;
+        const summary = document.getElementById('booking-selection-summary');
+        const manualCourt = document.getElementById('booking-manual-court');
+        const manualSlot = document.getElementById('booking-manual-slot');
+        const courtInput = document.getElementById('booking-court');
+        const slotInput = document.getElementById('booking-slot');
+        summary.classList.toggle('hidden', !isBatch);
+        manualCourt.classList.toggle('hidden', isBatch);
+        manualSlot.classList.toggle('hidden', isBatch);
+        courtInput.required = !isBatch;
+        slotInput.required = !isBatch;
+        courtInput.disabled = isBatch;
+        slotInput.disabled = isBatch;
+        if (isBatch) {
+          const groups = new Map();
+          for (const item of adminScheduleSelection.values()) {
+            const items = groups.get(item.courtId) || [];
+            items.push(item);
+            groups.set(item.courtId, items);
+          }
+          summary.querySelector('[data-booking-selection-text]').textContent = [...groups].map(([courtId, items]) => {
+            items.sort((a, b) => a.startMin - b.startMin);
+            return `Sân ${courtId}: ${items.map(item => `${item.start}–${item.end}`).join(', ')}`;
+          }).join(' · ');
+          summary.querySelector('[data-booking-selection-deposit]').textContent = 'Tiền cọc chung sẽ được phân bổ theo thời lượng các ca.';
+        }
+      }
+
+      function toggleAdminScheduleSlot(button) {
+        const courtId = Number(button.getAttribute('data-quick-slot-court'));
+        const start = button.getAttribute('data-quick-slot-time');
+        const end = button.getAttribute('data-quick-slot-end');
+        const key = `${courtId}|${start}`;
+        if (adminScheduleSelection.has(key)) {
+          adminScheduleSelection.delete(key);
+        } else {
+          validateBooking(courtId, `${start} - ${end}`, selectedDate());
+          const range = Core.ranges(`${start} - ${end}`, true)[0];
+          adminScheduleSelection.set(key, {courtId, start, end, startMin:range.startMin, endMin:range.endMin});
+        }
+        renderSchedule();
+      }
+
+      function createBookingsFromScheduleSelection(date, customer, phone, type, deposit) {
+        const byCourt = new Map();
+        for (const item of adminScheduleSelection.values()) {
+          const slots = byCourt.get(item.courtId) || [];
+          slots.push(item);
+          byCourt.set(item.courtId, slots);
+        }
+        const bookings = [];
+        for (const [courtId, items] of byCourt) {
+          items.sort((a, b) => a.startMin - b.startMin);
+          const groups = [];
+          for (const item of items) {
+            const last = groups.at(-1);
+            if (last && last.endMin === item.startMin) last.endMin = item.endMin;
+            else groups.push({ startMin:item.startMin, endMin:item.endMin });
+          }
+          for (const range of groups) bookings.push({ courtId, slot:`${Core.time(range.startMin)} - ${Core.time(range.endMin)}` });
+        }
+        if (!bookings.length) throw new Error('Chọn ít nhất một ca trống trên lịch sân.');
+        for (const booking of bookings) validateBooking(booking.courtId, booking.slot, date);
+        const durations = bookings.map(booking => Core.ranges(booking.slot, true)
+          .reduce((sum, range) => sum + range.endMin - range.startMin, 0));
+        const totalMinutes = durations.reduce((sum, minutes) => sum + minutes, 0);
+        let unallocatedDeposit = deposit;
+        return bookings.map((booking, index) => {
+          const share = index === bookings.length - 1
+            ? unallocatedDeposit
+            : Math.floor(deposit * durations[index] / totalMinutes);
+          unallocatedDeposit -= share;
+          return {
+            bookingDate: date,
+            id:Core.id('BK'),
+            customer,
+            phone,
+            courtId: booking.courtId,
+            slot: booking.slot,
+            type,
+            deposit: share,
+            status: 'reserved'
+          };
+        });
       }
 
       function renderInventory() {
@@ -1749,6 +1854,7 @@ function updateDynamicDateLabels() {
         const bookingCell = e.target.closest('[data-admin-booking-id]');
         if (bookingCell) {
           const id = bookingCell.getAttribute('data-admin-booking-id');
+          if (state.bookings.find(booking => booking.id === id)?.status === 'completed') return;
           const button = document.querySelector('[data-booking-checkin="' + id + '"]');
           if (button) setTimeout(() => button.click(), 0);
           else showToast('Lịch này không còn ở trạng thái chờ nhận sân.', 'warn');
@@ -2228,9 +2334,20 @@ function updateDynamicDateLabels() {
         // Schedule Timeline Slot Quick Click
         const slotBtn = e.target.closest('[data-quick-slot-court]');
         if (slotBtn) {
-          document.getElementById('booking-court').value = slotBtn.getAttribute('data-quick-slot-court');
-          document.getElementById('booking-slot').value = slotBtn.getAttribute('data-quick-slot-time') + ' - ' + slotBtn.getAttribute('data-quick-slot-end');
+          toggleAdminScheduleSlot(slotBtn);
+          return;
+        }
+        const clearScheduleSelection = e.target.closest('#btn-clear-admin-slot-selection, #btn-clear-admin-slot-selection-modal');
+        if (clearScheduleSelection) {
+          adminScheduleSelection.clear();
+          syncAdminBookingSelectionModal();
+          renderSchedule();
+          return;
+        }
+        const bookScheduleSelection = e.target.closest('#btn-book-admin-slot-selection');
+        if (bookScheduleSelection) {
           document.getElementById('booking-date').value = selectedDate();
+          syncAdminBookingSelectionModal();
           document.getElementById('modal-booking').classList.remove('hidden');
           return;
         }
@@ -2542,6 +2659,7 @@ function updateDynamicDateLabels() {
       // Open New Booking Modal
       document.getElementById('btn-open-new-booking').addEventListener('click', function () {
         document.getElementById('booking-date').value = selectedDate();
+        syncAdminBookingSelectionModal();
         document.getElementById('modal-booking').classList.remove('hidden');
       });
 
@@ -2549,31 +2667,30 @@ function updateDynamicDateLabels() {
         e.preventDefault();
         const customer = document.getElementById('booking-customer').value.trim();
         const phone = document.getElementById('booking-phone').value.trim();
+        const isBatch = adminScheduleSelection.size > 0;
         const courtId = Number(document.getElementById('booking-court').value);
         const slot = document.getElementById('booking-slot').value.trim();
         const type = document.getElementById('booking-type').value;
         const deposit = Core.amount(document.getElementById('booking-deposit').value || 0, 'Cọc đã nhận');
-
         const bookingDate = document.getElementById('booking-date').value;
-        validateBooking(courtId, slot, bookingDate);
-        state.bookings.unshift({
-          bookingDate,
-          id: Core.id('BK'),
-          customer,
-          phone,
-          courtId,
-          slot,
-          type,
-          deposit,
-          status: 'reserved'
-        });
-
-        reconcileCourtReservation(courtId);
+        let created;
+        if (isBatch) {
+          created = createBookingsFromScheduleSelection(bookingDate, customer, phone, type, deposit);
+          state.bookings.unshift(...created);
+          for (const id of new Set(created.map(booking => booking.courtId))) reconcileCourtReservation(id);
+        } else {
+          validateBooking(courtId, slot, bookingDate);
+          created = [{ bookingDate, id: Core.id('BK'), customer, phone, courtId, slot, type, deposit, status: 'reserved' }];
+          state.bookings.unshift(created[0]);
+          reconcileCourtReservation(courtId);
+        }
         document.getElementById('modal-booking').classList.add('hidden');
         document.getElementById('form-new-booking').reset();
+        adminScheduleSelection.clear();
+        syncAdminBookingSelectionModal();
         saveState();
         renderAll();
-        showToast(`Đã tạo lịch đặt Sân ${courtId} (${slot}) cho ${customer}`);
+        showToast(isBatch ? `Đã tạo ${created.length} phiếu từ các ca đã chọn cho ${customer}` : `Đã tạo lịch đặt Sân ${courtId} (${slot}) cho ${customer}`);
       });
 
       // Open New Product Modal
@@ -2615,7 +2732,21 @@ function updateDynamicDateLabels() {
 
       document.getElementById('admin-schedule-date').addEventListener('change',function(e){
         if(!/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))return;
+        adminScheduleSelection.clear();
         state.adminScheduleDate=e.target.value;renderAll();
+      });
+
+      document.getElementById('booking-search').addEventListener('input', function (e) {
+        bookingListSearch = e.target.value;
+        renderSchedule();
+      });
+      document.getElementById('booking-list-date').addEventListener('change', function (e) {
+        bookingListDate = e.target.value;
+        renderSchedule();
+      });
+      document.getElementById('booking-status-filter').addEventListener('change', function (e) {
+        bookingListStatus = e.target.value;
+        renderSchedule();
       });
 
       // Toggle KPI Shortcut Strip

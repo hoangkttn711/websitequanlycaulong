@@ -559,13 +559,22 @@
             <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
               <span>Lịch sân · 05:00–23:00</span>
             </h3>
-            <p class="text-xs text-slate-500 mt-0.5">Ô trống: tạo lịch · Ô đã đặt: xem hoặc nhận sân</p>
+            <p class="text-xs text-slate-500 mt-0.5">Chọn nhiều ô trống trên các sân, sau đó tạo một lượt lịch</p>
           </div>
           <div class="flex items-center gap-3 sm:gap-4 flex-wrap text-[11px] sm:text-xs">
             <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-600"></span> Đang đánh</span>
             <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-amber-400 border border-amber-500"></span> Đã đặt trước</span>
-            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-white border border-slate-300"></span> Còn trống (Bấm để đặt)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-slate-200"></span> Đã xong</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-white border border-slate-300"></span> Còn trống (Bấm để chọn)</span>
             <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-rose-100 border border-rose-300 text-rose-700 text-[10px] text-center font-bold">🔒</span> Bảo trì</span>
+          </div>
+        </div>
+
+        <div id="admin-schedule-selection-bar" class="hidden flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3">
+          <span id="admin-schedule-selection-count" class="text-xs font-semibold text-sky-900">0 khung giờ đã chọn</span>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-clear-admin-slot-selection" class="px-3 py-2 rounded-lg border border-sky-200 bg-white text-xs font-semibold text-slate-700">Bỏ chọn</button>
+            <button type="button" id="btn-book-admin-slot-selection" class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">Tạo phiếu từ ca đã chọn</button>
           </div>
         </div>
 
@@ -585,9 +594,18 @@
 
       <!-- Bookings List Table -->
       <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 class="font-bold text-sm text-slate-900">Danh Sách Phiếu Đặt Sân</h3>
-          <span id="booking-count-label" class="text-xs text-slate-500 font-medium">0 lịch đặt</span>
+        <div class="p-4 border-b border-slate-100 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="font-bold text-sm text-slate-900">Danh Sách Phiếu Đặt Sân</h3>
+            <span id="booking-count-label" class="text-xs text-slate-500 font-medium">0 phiếu</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input id="booking-search" type="search" aria-label="Tìm phiếu đặt sân" placeholder="Tìm tên, số điện thoại, sân, giờ..." class="w-full min-w-0 px-3 py-2 rounded-lg border border-slate-200 text-xs" />
+            <label title="Để trống để xem mọi ngày" class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-600"><span class="shrink-0">Ngày</span><input id="booking-list-date" type="date" aria-label="Lọc phiếu theo ngày; để trống xem mọi ngày" class="min-w-0 flex-1 border-0 bg-transparent p-0 text-xs focus:ring-0" /></label>
+            <select id="booking-status-filter" aria-label="Lọc phiếu theo trạng thái" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs">
+              <option value="all">Tất cả trạng thái</option><option value="reserved">Chờ nhận</option><option value="checked_in">Đang đánh</option><option value="completed">Đã xong</option><option value="cancelled">Đã hủy</option>
+            </select>
+          </div>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
@@ -595,6 +613,7 @@
               <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
                 <th class="py-3 px-4">Khách hàng / CLB</th>
                 <th class="py-3 px-4">Số điện thoại</th>
+                <th class="py-3 px-4">Ngày</th>
                 <th class="py-3 px-4">Sân</th>
                 <th class="py-3 px-4">Khung giờ</th>
                 <th class="py-3 px-4">Loại khách</th>
@@ -938,6 +957,12 @@
       </div>
       <form id="form-new-booking" class="p-5 space-y-3.5">
 <label for="booking-date">Ngày đặt sân</label><input type="date" id="booking-date" required class="w-full border rounded-xl px-3 py-2" />
+        <div id="booking-selection-summary" class="hidden rounded-xl border border-sky-200 bg-sky-50 p-3">
+          <p class="text-xs font-semibold text-sky-900">Các ca đã chọn</p>
+          <p data-booking-selection-text class="mt-1 text-xs text-sky-800"></p>
+          <p data-booking-selection-deposit class="mt-1 text-[11px] text-sky-700"></p>
+          <button type="button" id="btn-clear-admin-slot-selection-modal" class="mt-2 text-xs font-semibold text-rose-700 underline">Bỏ các ca đã chọn</button>
+        </div>
         <div>
           <label for="booking-customer" class="block text-xs font-semibold text-slate-700 mb-1">Tên khách hàng / Đội cầu lông</label>
           <input type="text" id="booking-customer" required placeholder="VD: Anh Hoàng - Ngân hàng Vietcombank" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" />
@@ -947,7 +972,7 @@
             <label for="booking-phone" class="block text-xs font-semibold text-slate-700 mb-1">Số điện thoại</label>
             <input type="text" id="booking-phone" required placeholder="0988xxxxxx" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" />
           </div>
-          <div>
+          <div id="booking-manual-court">
             <label for="booking-court" class="block text-xs font-semibold text-slate-700 mb-1">Chọn sân (4 sân)</label>
             <select id="booking-court" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
               <option value="1">Sân 1 (Sân thảm xanh)</option>
@@ -958,7 +983,7 @@
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div>
+          <div id="booking-manual-slot">
             <label for="booking-slot" class="block text-xs font-semibold text-slate-700 mb-1">Khung giờ tùy chọn (VD: 17:30 - 19:00)</label>
             <input type="text" id="booking-slot" required  placeholder="VD: 17:30 - 19:00" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white" />
           </div>

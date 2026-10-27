@@ -5,16 +5,19 @@
   "scripts": {
     "build": "node tools_and_scripts/build.js",
     "test": "node tools_and_scripts/build.js && node --test tests/*.test.js",
-    "check": "npm test && node tools_and_scripts/verify_all.js",
-    "start": "node tools_and_scripts/server.js"
+    "check": "npm run typecheck && npm test && node tools_and_scripts/verify_all.js",
+    "start": "node tools_and_scripts/server.js",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.12",
     "@supabase/supabase-js": "2.118.0",
+    "@types/node": "22.19.1",
     "acorn": "8.15.0",
     "chart.js": "4.4.1",
     "jsdom": "26.1.0",
-    "tailwindcss": "3.4.17"
+    "tailwindcss": "3.4.17",
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=22"

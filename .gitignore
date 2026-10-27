@@ -23,3 +23,6 @@ Thumbs.db
 # Reproducible build outputs
 public/
 assets/
+
+# Intermediate TypeScript output (never deployed)
+.build/

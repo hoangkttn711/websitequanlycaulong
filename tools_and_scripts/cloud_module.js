@@ -34,30 +34,13 @@
       function businessSnapshot() {
         return JSON.parse(JSON.stringify({ courts: state.courts, products: state.products, bookings: state.bookings, invoices: state.invoices }));
       }
-      function mapCourtFromDb(c) {
-        return { id: Number(c.id), name: c.name, zone: c.zone, matColor: c.mat_color, status: c.status,
-          customer: c.customer || '', rateType: c.rate_type || 'normal', hourlyRate: Number(c.hourly_rate ?? 60000),
-          startTime: c.start_time || '', bookedHours: Number(c.booked_hours ?? 1.5), elapsedMinutes: Number(c.elapsed_minutes ?? 0),
-          deposit: Number(c.deposit ?? 0), items: c.items || [], startedAt: c.started_at, sessionId: c.session_id, bookingId: c.booking_id };
-      }
-      function mapBookingFromDb(b) {
-        return { id: b.id, customer: b.customer || '', phone: b.phone || '', courtId: Number(b.court_id), slot: b.slot,
-          bookingDate: b.booking_date, type: b.type || 'Khách đặt Online', deposit: Number(b.deposit ?? 0), status: b.status,
-          createdAt: b.created_at, isMine: b.is_mine === true };
-      }
-      function mapProductFromDb(p) {
-        return { id: p.id, name: p.name, category: p.category, unit: p.unit, cost: Number(p.cost ?? 0), price: Number(p.price),
-          stock: Number(p.stock), soldToday: 0, icon: p.icon || '🏸' };
-      }
+      const { mapCourtFromDb, mapBookingFromDb, mapProductFromDb, mapInvoiceFromDb } = globalThis.SmashCourtCloudModels;
       function applySnapshot(data) {
         if (!data || !Number.isSafeInteger(data.revision) || !['courts','products','bookings','invoices'].every(k => Array.isArray(data[k]))) throw new Error('Dữ liệu máy chủ không hợp lệ. Cần chạy migration trước.');
         state.courts = data.courts.map(mapCourtFromDb);
         state.products = data.products.map(mapProductFromDb);
         state.bookings = data.bookings.map(mapBookingFromDb);
-        state.invoices = data.invoices.map(i => ({ id:i.id, time:i.time, type:i.type, courtName:i.court_name, customer:i.customer,
-          courtFee:Number(i.court_fee), posFee:Number(i.pos_fee), discount:Number(i.discount), total:Number(i.total),
-          paymentMethod:i.payment_method, items:i.items || [], createdAt:i.created_at, paymentAmount:i.payment_amount,
-          depositApplied:i.deposit_applied, refundAmount:i.refund_amount, sessionId:i.session_id }));
+        state.invoices = data.invoices.map(mapInvoiceFromDb);
         for (const inv of state.invoices.filter(i => Core.invoiceDate(i) === Core.dateKey())) for (const item of inv.items) {
           const product = state.products.find(p => p.id === item.productId);
           if (product) product.soldToday += item.qty;
@@ -137,7 +120,7 @@
         const identifier = username.trim();
         const email = identifier.toLowerCase() === 'admin' ? 'hoang.kttn711@gmail.com' : identifier;
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error || data.user?.app_metadata?.role !== 'admin') {
+        if (error || !globalThis.SmashCourtCloudModels.hasAdminRole(data.user)) {
           await supabaseClient.auth.signOut();
           document.getElementById('admin-login-error').classList.remove('hidden');
           throw new Error('Tài khoản, mật khẩu hoặc quyền quản trị không hợp lệ.');
@@ -163,22 +146,8 @@
         }
         applySnapshot(await rpc('app_read_state', {p_device_token:deviceToken || ''}));
       }
-      function validateBooking(courtId, slot, date) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || date < Core.dateKey()) throw new Error('Ngày đặt không hợp lệ.');
-        const rs = Core.ranges(slot, true), court = state.courts.find(c => c.id === courtId);
-        if (!court || court.status === 'maintenance') throw new Error('Sân chưa sẵn sàng.');
-        for (const r of rs) {
-          if (date === Core.dateKey() && r.startMin < getCurrentMinutes()) throw new Error('Khung giờ đã qua.');
-          if (state.bookings.some(b => b.courtId === courtId && b.bookingDate === date && ['reserved','checked_in'].includes(b.status) && bookingRanges(b).some(x => Core.overlap(x,r)))) throw new Error('Khung giờ vừa có người đặt.');
-          if (date === Core.dateKey() && slotStartMinSafe(court,r.startMin,r.endMin)) throw new Error('Khung giờ trùng phiên đang chơi.');
-        }
-      }
-      function slotStartMinSafe(court, start, end) {
-        if (court.status !== 'active') return false;
-        if (!court.startedAt || Core.dateKey(court.startedAt) !== Core.dateKey()) return true;
-        const a = Core.nowMinutes(court.startedAt), b = Math.min(1380, Math.max(a + Number(court.bookedHours)*60, getCurrentMinutes()+1));
-        return Core.overlap({startMin:start,endMin:end},{startMin:a,endMin:b});
-      }
+      function validateBooking(courtId, slot, date) { return globalThis.SmashCourtBookingRules.validateBooking(courtId, slot, date, state.courts, state.bookings, getCurrentMinutes); }
+      function slotStartMinSafe(court, start, end) { return globalThis.SmashCourtBookingRules.slotStartMinSafe(court, start, end, getCurrentMinutes); }
       function reconcileCourtReservation(courtId) {
         const court = state.courts.find(c => c.id === courtId);
         if (!court || ['active','maintenance'].includes(court.status)) return;
@@ -187,11 +156,7 @@
         court.deposit = next?.deposit || 0; court.bookingId = next?.id || null;
         if (next) { const r = bookingRanges(next)[0]; if (r) { court.startTime=Core.time(r.startMin); court.bookedHours=(r.endMin-r.startMin)/60; } }
       }
-      function checkoutFee(court, hours) {
-        const start = Core.minutes(court.startTime);
-        if (start + hours*60 > 1380 || !Number.isInteger(hours*60)) throw new Error('Thời lượng vượt giờ đóng cửa hoặc không hợp lệ.');
-        return Core.fee(court.startTime, Core.time(start + hours*60)).fee;
-      }
+      const { checkoutFee } = globalThis.SmashCourtBookingRules;
       function netCourtRevenue(inv) { return Math.round(inv.total * inv.courtFee / (inv.courtFee + inv.posFee || 1)); }
       function weeklyRevenue(field) {
         return Array.from({length:7},(_,i) => {
@@ -317,7 +282,7 @@
           supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.anonKey);
           const { data:{session}, error }=await supabaseClient.auth.getSession(); if(error)throw error;
           // getUser validates the persisted session before privileged UI is shown.
-          if(session){const {data:{user},error:userError}=await supabaseClient.auth.getUser();state.isAdminLoggedIn=!userError&&user?.app_metadata?.role==='admin';}
+          if(session){const {data:{user},error:userError}=await supabaseClient.auth.getUser();state.isAdminLoggedIn=!userError&&globalThis.SmashCourtCloudModels.hasAdminRole(user);}
           state.viewMode=state.isAdminLoggedIn?'admin':'customer';
           supabaseClient.auth.onAuthStateChange((event,session)=>{
             if(event==='SIGNED_OUT'||(!session&&state.isAdminLoggedIn)){

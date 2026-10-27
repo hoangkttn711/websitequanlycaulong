@@ -1053,84 +1053,205 @@
 
 
 <script>
-(function (root, factory) {
-  const core = factory();
-  if (typeof module === 'object' && module.exports) module.exports = core;
-  else root.SmashCourtCore = core;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  'use strict';
-  const timezone = 'Asia/Ho_Chi_Minh';
-  function dateKey(value = new Date()) {
+(function () { const module = { exports: {} }; const require = name => { const imports = {}; if (!(name in imports)) throw new Error("Unknown browser module: " + name); return imports[name]; };
+"use strict";
+const timezone = 'Asia/Ho_Chi_Minh';
+function dateKey(value = new Date()) {
     return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value));
-  }
-  function nowMinutes(value = new Date()) {
+}
+function nowMinutes(value = new Date()) {
     const parts = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(value));
-    return Number(parts.find(p => p.type === 'hour').value) * 60 + Number(parts.find(p => p.type === 'minute').value);
-  }
-  function bookingDate(day = 'today', now = new Date()) {
+    return Number(parts.find(p => p.type === 'hour')?.value) * 60 + Number(parts.find(p => p.type === 'minute')?.value);
+}
+const dayOffsets = { today: 0, tomorrow: 1, sunday: 2 };
+function bookingDate(day = 'today', now = new Date()) {
     const d = new Date(dateKey(now) + 'T12:00:00+07:00');
-    d.setTime(d.getTime() + ({ today: 0, tomorrow: 1, sunday: 2 }[day] || 0) * 86400000);
+    d.setTime(d.getTime() + (dayOffsets[day] || 0) * 86400000);
     return dateKey(d);
-  }
-  function minutes(value) {
-    if (typeof value !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value.trim())) throw new Error('Giờ không hợp lệ (HH:MM).');
+}
+function minutes(value) {
+    if (typeof value !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value.trim()))
+        throw new Error('Giờ không hợp lệ (HH:MM).');
     const [h, m] = value.trim().split(':').map(Number);
     return h * 60 + m;
-  }
-  function time(value) {
-    if (!Number.isInteger(value) || value < 0 || value >= 1440) throw new Error('Giờ không hợp lệ.');
+}
+function time(value) {
+    if (!Number.isInteger(value) || value < 0 || value >= 1440)
+        throw new Error('Giờ không hợp lệ.');
     return String(Math.floor(value / 60)).padStart(2, '0') + ':' + String(value % 60).padStart(2, '0');
-  }
-  function ranges(slot, strict = false) {
-    if (typeof slot !== 'string' || !slot.trim()) throw new Error('Chưa chọn khung giờ.');
+}
+function ranges(slot, strict = false) {
+    if (typeof slot !== 'string' || !slot.trim())
+        throw new Error('Chưa chọn khung giờ.');
     const result = slot.split(',').map(part => {
-      const match = part.trim().match(/^(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})$/);
-      if (!match) throw new Error('Khung giờ không hợp lệ.');
-      const startMin = minutes(match[1]), endMin = minutes(match[2]);
-      if (startMin < 300 || endMin > 1380 || endMin <= startMin || (strict && (startMin % 30 || endMin % 30))) throw new Error('Chọn giờ từ 05:00 đến 23:00, theo bước 30 phút.');
-      return { startMin, endMin };
+        const match = part.trim().match(/^(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})$/);
+        if (!match)
+            throw new Error('Khung giờ không hợp lệ.');
+        const startMin = minutes(match[1]), endMin = minutes(match[2]);
+        if (startMin < 300 || endMin > 1380 || endMin <= startMin || (strict && (startMin % 30 || endMin % 30)))
+            throw new Error('Chọn giờ từ 05:00 đến 23:00, theo bước 30 phút.');
+        return { startMin, endMin };
     }).sort((a, b) => a.startMin - b.startMin);
-    if (result.some((r, i) => i && r.startMin < result[i - 1].endMin)) throw new Error('Các khung giờ bị chồng lấn.');
+    if (result.some((r, i) => i && r.startMin < result[i - 1].endMin))
+        throw new Error('Các khung giờ bị chồng lấn.');
     return result;
-  }
-  function overlap(a, b) { return a.startMin < b.endMin && b.startMin < a.endMin; }
-  function fee(start, end) {
+}
+function overlap(a, b) { return a.startMin < b.endMin && b.startMin < a.endMin; }
+function fee(start, end) {
     const a = minutes(start), b = minutes(end);
-    if (b <= a || a < 300 || b > 1380) throw new Error('Khung giờ tính tiền không hợp lệ.');
+    if (b <= a || a < 300 || b > 1380)
+        throw new Error('Khung giờ tính tiền không hợp lệ.');
     const peak = Math.max(0, Math.min(b, 1260) - Math.max(a, 1020));
     return { totalHours: (b - a) / 60, normalHours: (b - a - peak) / 60, eveningHours: peak / 60, fee: Math.round(((b - a - peak) * 60000 + peak * 80000) / 60) };
-  }
-  function escapeHTML(value) {
-    return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
-  function id(prefix) { return prefix + '-' + globalThis.crypto.randomUUID(); }
-  function amount(value, label = 'Số tiền') {
+}
+const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => entities[c]);
+}
+function id(prefix) { return prefix + '-' + globalThis.crypto.randomUUID(); }
+function amount(value, label = 'Số tiền') {
     const n = Number(value);
-    if (!Number.isSafeInteger(n) || n < 0) throw new Error(label + ' phải là số nguyên không âm.');
+    if (!Number.isSafeInteger(n) || n < 0)
+        throw new Error(label + ' phải là số nguyên không âm.');
     return n;
-  }
-  function adjustItem(court, product, delta) {
-    if (!Number.isInteger(delta) || !delta) throw new Error('Số lượng không hợp lệ.');
-    if (!['active', 'reserved'].includes(court.status)) throw new Error('Sân chưa có phiên sử dụng.');
+}
+function adjustItem(court, product, delta) {
+    if (!Number.isInteger(delta) || !delta)
+        throw new Error('Số lượng không hợp lệ.');
+    if (!['active', 'reserved'].includes(court.status))
+        throw new Error('Sân chưa có phiên sử dụng.');
     const item = court.items.find(i => i.productId === product.id);
     const next = (item?.qty || 0) + delta;
-    if (next < 0 || (!item && delta < 0)) throw new Error('Không có sản phẩm để bớt.');
-    if (delta > product.stock) throw new Error('Không đủ tồn kho: ' + product.name);
+    if (next < 0 || (!item && delta < 0))
+        throw new Error('Không có sản phẩm để bớt.');
+    if (delta > product.stock)
+        throw new Error('Không đủ tồn kho: ' + product.name);
     product.stock -= delta;
-    if (item) item.qty = next;
-    else court.items.push({ productId: product.id, name: product.name, price: product.price, category: product.category, qty: delta });
+    if (item)
+        item.qty = next;
+    else
+        court.items.push({ productId: product.id, name: product.name, price: product.price, category: product.category, qty: delta });
     court.items = court.items.filter(i => i.qty > 0);
-  }
-  function checkoutTotals(courtFee, posFee, discount, deposit) {
-    for(const value of [courtFee,posFee,discount,deposit])amount(value);
-    if(discount>courtFee+posFee)throw new Error('Giảm giá vượt giá trị hóa đơn.');
-    const total=courtFee+posFee-discount;
-    return {total,paymentAmount:Math.max(0,total-deposit),depositApplied:Math.min(total,deposit),refundAmount:Math.max(0,deposit-total)};
-  }
-  function invoiceDate(inv) { return inv.createdAt ? dateKey(inv.createdAt) : null; }
-  return { timezone, dateKey, nowMinutes, bookingDate, minutes, time, ranges, overlap, fee, escapeHTML, id, amount, adjustItem, invoiceDate, checkoutTotals };
-});
+}
+function checkoutTotals(courtFee, posFee, discount, deposit) {
+    for (const value of [courtFee, posFee, discount, deposit])
+        amount(value);
+    if (discount > courtFee + posFee)
+        throw new Error('Giảm giá vượt giá trị hóa đơn.');
+    const total = courtFee + posFee - discount;
+    return { total, paymentAmount: Math.max(0, total - deposit), depositApplied: Math.min(total, deposit), refundAmount: Math.max(0, deposit - total) };
+}
+function invoiceDate(inv) { return inv.createdAt ? dateKey(inv.createdAt) : null; }
+const core = { timezone, dateKey, nowMinutes, bookingDate, minutes, time, ranges, overlap, fee, escapeHTML, id, amount, adjustItem, invoiceDate, checkoutTotals };
+module.exports = core;
 
+globalThis.SmashCourtCore = module.exports;
+})();
+(function () { const module = { exports: {} }; const require = name => { const imports = {}; if (!(name in imports)) throw new Error("Unknown browser module: " + name); return imports[name]; };
+"use strict";
+function mapCourtFromDb(c) {
+    return { id: Number(c.id), name: c.name, zone: c.zone, matColor: c.mat_color, status: c.status,
+        customer: c.customer || '', rateType: c.rate_type || 'normal', hourlyRate: Number(c.hourly_rate ?? 60000),
+        startTime: c.start_time || '', bookedHours: Number(c.booked_hours ?? 1.5), elapsedMinutes: Number(c.elapsed_minutes ?? 0),
+        deposit: Number(c.deposit ?? 0), items: c.items || [], startedAt: c.started_at, sessionId: c.session_id, bookingId: c.booking_id };
+}
+function mapBookingFromDb(b) {
+    return { id: b.id, customer: b.customer || '', phone: b.phone || '', courtId: Number(b.court_id), slot: b.slot,
+        bookingDate: b.booking_date, type: b.type || 'Khách đặt Online', deposit: Number(b.deposit ?? 0), status: b.status,
+        createdAt: b.created_at, isMine: b.is_mine === true };
+}
+function mapProductFromDb(p) {
+    return { id: p.id, name: p.name, category: p.category, unit: p.unit, cost: Number(p.cost ?? 0), price: Number(p.price),
+        stock: Number(p.stock), soldToday: 0, icon: p.icon || '🏸' };
+}
+function mapInvoiceFromDb(i) {
+    return { id: i.id, time: i.time, type: i.type, courtName: i.court_name, customer: i.customer,
+        courtFee: Number(i.court_fee), posFee: Number(i.pos_fee), discount: Number(i.discount), total: Number(i.total),
+        paymentMethod: i.payment_method, items: i.items || [], createdAt: i.created_at, paymentAmount: i.payment_amount,
+        depositApplied: i.deposit_applied, refundAmount: i.refund_amount, sessionId: i.session_id };
+}
+// Only server-controlled app_metadata is used, as before. SQL remains authoritative.
+function hasAdminRole(user) {
+    return user?.app_metadata?.role === 'admin';
+}
+module.exports = { mapCourtFromDb, mapBookingFromDb, mapProductFromDb, mapInvoiceFromDb, hasAdminRole };
+
+globalThis.SmashCourtCloudModels = module.exports;
+})();
+(function () { const module = { exports: {} }; const require = name => { const imports = {"./app_core": globalThis.SmashCourtCore}; if (!(name in imports)) throw new Error("Unknown browser module: " + name); return imports[name]; };
+"use strict";
+const Core = require("./app_core");
+function bookingRanges(booking) { try {
+    return Core.ranges(booking.slot);
+}
+catch {
+    return [];
+} }
+function bookingStartAt(booking) {
+    if (!booking || !/^\d{4}-\d{2}-\d{2}$/.test(booking.bookingDate || ''))
+        return null;
+    const range = bookingRanges(booking)[0];
+    if (!range)
+        return null;
+    const timestamp = Date.parse(`${booking.bookingDate}T${Core.time(range.startMin)}:00+07:00`);
+    return Number.isFinite(timestamp) ? timestamp : null;
+}
+function bookingStartTime(booking) {
+    const range = booking && bookingRanges(booking)[0];
+    return range ? Core.time(range.startMin) : '';
+}
+function isBookingAwaitingStart(booking, now = Date.now()) {
+    const startAt = bookingStartAt(booking);
+    return startAt !== null && now < startAt;
+}
+function courtTiming(court, bookings, now = Date.now()) {
+    const booking = bookings.find(b => String(b.id) === String(court.bookingId));
+    const scheduledStartAt = bookingStartAt(booking);
+    const recordedStartAt = Date.parse(court.startedAt || '');
+    const startAt = scheduledStartAt === null
+        ? (Number.isFinite(recordedStartAt) ? recordedStartAt : null)
+        : Math.max(Number.isFinite(recordedStartAt) ? recordedStartAt : scheduledStartAt, scheduledStartAt);
+    return {
+        booking,
+        waiting: scheduledStartAt !== null && now < scheduledStartAt,
+        elapsedMinutes: startAt === null
+            ? Math.max(0, Number(court.elapsedMinutes) || 0)
+            : Math.max(0, Math.floor((now - startAt) / 60000))
+    };
+}
+function checkoutFee(court, hours) {
+    const start = Core.minutes(court.startTime);
+    if (start + hours * 60 > 1380 || !Number.isInteger(hours * 60))
+        throw new Error('Thời lượng vượt giờ đóng cửa hoặc không hợp lệ.');
+    return Core.fee(court.startTime, Core.time(start + hours * 60)).fee;
+}
+function validateBooking(courtId, slot, date, courts, bookings, getCurrentMinutes = Core.nowMinutes) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || date < Core.dateKey())
+        throw new Error('Ngày đặt không hợp lệ.');
+    const rs = Core.ranges(slot, true), court = courts.find(c => c.id === courtId);
+    if (!court || court.status === 'maintenance')
+        throw new Error('Sân chưa sẵn sàng.');
+    for (const r of rs) {
+        if (date === Core.dateKey() && r.startMin < getCurrentMinutes())
+            throw new Error('Khung giờ đã qua.');
+        if (bookings.some(b => b.courtId === courtId && b.bookingDate === date && ['reserved', 'checked_in'].includes(b.status) && bookingRanges(b).some(x => Core.overlap(x, r))))
+            throw new Error('Khung giờ vừa có người đặt.');
+        if (date === Core.dateKey() && slotStartMinSafe(court, r.startMin, r.endMin, getCurrentMinutes))
+            throw new Error('Khung giờ trùng phiên đang chơi.');
+    }
+}
+function slotStartMinSafe(court, start, end, getCurrentMinutes) {
+    if (court.status !== 'active')
+        return false;
+    if (!court.startedAt || Core.dateKey(court.startedAt) !== Core.dateKey())
+        return true;
+    const a = Core.nowMinutes(court.startedAt), b = Math.min(1380, Math.max(a + Number(court.bookedHours) * 60, getCurrentMinutes() + 1));
+    return Core.overlap({ startMin: start, endMin: end }, { startMin: a, endMin: b });
+}
+module.exports = { bookingRanges, bookingStartAt, bookingStartTime, isBookingAwaitingStart, courtTiming, checkoutFee, validateBooking, slotStartMinSafe };
+
+globalThis.SmashCourtBookingRules = module.exports;
+})();
 
     (function () {
       const Core = globalThis.SmashCourtCore;
@@ -1153,37 +1274,8 @@
       function minutesToTime(value) { return Core.time(Math.max(300, Math.min(1380, value))); }
       function calculateTimeRangeFee(start, end) { return Core.fee(start, end); }
       function parseSlotRange(slot) { return Core.ranges(slot)[0]; }
-      function bookingRanges(booking) { try { return Core.ranges(booking.slot); } catch { return []; } }
-      function bookingStartAt(booking) {
-        if (!booking || !/^\d{4}-\d{2}-\d{2}$/.test(booking.bookingDate || '')) return null;
-        const range = bookingRanges(booking)[0];
-        if (!range) return null;
-        const timestamp = Date.parse(`${booking.bookingDate}T${Core.time(range.startMin)}:00+07:00`);
-        return Number.isFinite(timestamp) ? timestamp : null;
-      }
-      function bookingStartTime(booking) {
-        const range = booking && bookingRanges(booking)[0];
-        return range ? Core.time(range.startMin) : '';
-      }
-      function isBookingAwaitingStart(booking, now = Date.now()) {
-        const startAt = bookingStartAt(booking);
-        return startAt !== null && now < startAt;
-      }
-      function courtTiming(court, now = Date.now()) {
-        const booking = state.bookings.find(b => String(b.id) === String(court.bookingId));
-        const scheduledStartAt = bookingStartAt(booking);
-        const recordedStartAt = Date.parse(court.startedAt || '');
-        const startAt = scheduledStartAt === null
-          ? (Number.isFinite(recordedStartAt) ? recordedStartAt : null)
-          : Math.max(Number.isFinite(recordedStartAt) ? recordedStartAt : scheduledStartAt, scheduledStartAt);
-        return {
-          booking,
-          waiting: scheduledStartAt !== null && now < scheduledStartAt,
-          elapsedMinutes: startAt === null
-            ? Math.max(0, Number(court.elapsedMinutes) || 0)
-            : Math.max(0, Math.floor((now - startAt) / 60000))
-        };
-      }
+      const { bookingRanges, bookingStartAt, bookingStartTime, isBookingAwaitingStart } = globalThis.SmashCourtBookingRules;
+      function courtTiming(court, now = Date.now()) { return globalThis.SmashCourtBookingRules.courtTiming(court, state.bookings, now); }
       function selectedDate() { return state.isAdminLoggedIn && state.viewMode === 'admin' ? state.adminScheduleDate || Core.dateKey() : Core.bookingDate(state.customerDay); }
       function bookingOnDay(booking) { return booking.bookingDate === selectedDate() && ['reserved','checked_in'].includes(booking.status); }
       function conflicts(booking, start, end) { return bookingOnDay(booking) && bookingRanges(booking).some(r => Core.overlap(r, {startMin:start,endMin:end})); }
@@ -3865,30 +3957,13 @@ function updateDynamicDateLabels() {
       function businessSnapshot() {
         return JSON.parse(JSON.stringify({ courts: state.courts, products: state.products, bookings: state.bookings, invoices: state.invoices }));
       }
-      function mapCourtFromDb(c) {
-        return { id: Number(c.id), name: c.name, zone: c.zone, matColor: c.mat_color, status: c.status,
-          customer: c.customer || '', rateType: c.rate_type || 'normal', hourlyRate: Number(c.hourly_rate ?? 60000),
-          startTime: c.start_time || '', bookedHours: Number(c.booked_hours ?? 1.5), elapsedMinutes: Number(c.elapsed_minutes ?? 0),
-          deposit: Number(c.deposit ?? 0), items: c.items || [], startedAt: c.started_at, sessionId: c.session_id, bookingId: c.booking_id };
-      }
-      function mapBookingFromDb(b) {
-        return { id: b.id, customer: b.customer || '', phone: b.phone || '', courtId: Number(b.court_id), slot: b.slot,
-          bookingDate: b.booking_date, type: b.type || 'Khách đặt Online', deposit: Number(b.deposit ?? 0), status: b.status,
-          createdAt: b.created_at, isMine: b.is_mine === true };
-      }
-      function mapProductFromDb(p) {
-        return { id: p.id, name: p.name, category: p.category, unit: p.unit, cost: Number(p.cost ?? 0), price: Number(p.price),
-          stock: Number(p.stock), soldToday: 0, icon: p.icon || '🏸' };
-      }
+      const { mapCourtFromDb, mapBookingFromDb, mapProductFromDb, mapInvoiceFromDb } = globalThis.SmashCourtCloudModels;
       function applySnapshot(data) {
         if (!data || !Number.isSafeInteger(data.revision) || !['courts','products','bookings','invoices'].every(k => Array.isArray(data[k]))) throw new Error('Dữ liệu máy chủ không hợp lệ. Cần chạy migration trước.');
         state.courts = data.courts.map(mapCourtFromDb);
         state.products = data.products.map(mapProductFromDb);
         state.bookings = data.bookings.map(mapBookingFromDb);
-        state.invoices = data.invoices.map(i => ({ id:i.id, time:i.time, type:i.type, courtName:i.court_name, customer:i.customer,
-          courtFee:Number(i.court_fee), posFee:Number(i.pos_fee), discount:Number(i.discount), total:Number(i.total),
-          paymentMethod:i.payment_method, items:i.items || [], createdAt:i.created_at, paymentAmount:i.payment_amount,
-          depositApplied:i.deposit_applied, refundAmount:i.refund_amount, sessionId:i.session_id }));
+        state.invoices = data.invoices.map(mapInvoiceFromDb);
         for (const inv of state.invoices.filter(i => Core.invoiceDate(i) === Core.dateKey())) for (const item of inv.items) {
           const product = state.products.find(p => p.id === item.productId);
           if (product) product.soldToday += item.qty;
@@ -3968,7 +4043,7 @@ function updateDynamicDateLabels() {
         const identifier = username.trim();
         const email = identifier.toLowerCase() === 'admin' ? 'hoang.kttn711@gmail.com' : identifier;
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error || data.user?.app_metadata?.role !== 'admin') {
+        if (error || !globalThis.SmashCourtCloudModels.hasAdminRole(data.user)) {
           await supabaseClient.auth.signOut();
           document.getElementById('admin-login-error').classList.remove('hidden');
           throw new Error('Tài khoản, mật khẩu hoặc quyền quản trị không hợp lệ.');
@@ -3994,22 +4069,8 @@ function updateDynamicDateLabels() {
         }
         applySnapshot(await rpc('app_read_state', {p_device_token:deviceToken || ''}));
       }
-      function validateBooking(courtId, slot, date) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || date < Core.dateKey()) throw new Error('Ngày đặt không hợp lệ.');
-        const rs = Core.ranges(slot, true), court = state.courts.find(c => c.id === courtId);
-        if (!court || court.status === 'maintenance') throw new Error('Sân chưa sẵn sàng.');
-        for (const r of rs) {
-          if (date === Core.dateKey() && r.startMin < getCurrentMinutes()) throw new Error('Khung giờ đã qua.');
-          if (state.bookings.some(b => b.courtId === courtId && b.bookingDate === date && ['reserved','checked_in'].includes(b.status) && bookingRanges(b).some(x => Core.overlap(x,r)))) throw new Error('Khung giờ vừa có người đặt.');
-          if (date === Core.dateKey() && slotStartMinSafe(court,r.startMin,r.endMin)) throw new Error('Khung giờ trùng phiên đang chơi.');
-        }
-      }
-      function slotStartMinSafe(court, start, end) {
-        if (court.status !== 'active') return false;
-        if (!court.startedAt || Core.dateKey(court.startedAt) !== Core.dateKey()) return true;
-        const a = Core.nowMinutes(court.startedAt), b = Math.min(1380, Math.max(a + Number(court.bookedHours)*60, getCurrentMinutes()+1));
-        return Core.overlap({startMin:start,endMin:end},{startMin:a,endMin:b});
-      }
+      function validateBooking(courtId, slot, date) { return globalThis.SmashCourtBookingRules.validateBooking(courtId, slot, date, state.courts, state.bookings, getCurrentMinutes); }
+      function slotStartMinSafe(court, start, end) { return globalThis.SmashCourtBookingRules.slotStartMinSafe(court, start, end, getCurrentMinutes); }
       function reconcileCourtReservation(courtId) {
         const court = state.courts.find(c => c.id === courtId);
         if (!court || ['active','maintenance'].includes(court.status)) return;
@@ -4018,11 +4079,7 @@ function updateDynamicDateLabels() {
         court.deposit = next?.deposit || 0; court.bookingId = next?.id || null;
         if (next) { const r = bookingRanges(next)[0]; if (r) { court.startTime=Core.time(r.startMin); court.bookedHours=(r.endMin-r.startMin)/60; } }
       }
-      function checkoutFee(court, hours) {
-        const start = Core.minutes(court.startTime);
-        if (start + hours*60 > 1380 || !Number.isInteger(hours*60)) throw new Error('Thời lượng vượt giờ đóng cửa hoặc không hợp lệ.');
-        return Core.fee(court.startTime, Core.time(start + hours*60)).fee;
-      }
+      const { checkoutFee } = globalThis.SmashCourtBookingRules;
       function netCourtRevenue(inv) { return Math.round(inv.total * inv.courtFee / (inv.courtFee + inv.posFee || 1)); }
       function weeklyRevenue(field) {
         return Array.from({length:7},(_,i) => {
@@ -4148,7 +4205,7 @@ function updateDynamicDateLabels() {
           supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.anonKey);
           const { data:{session}, error }=await supabaseClient.auth.getSession(); if(error)throw error;
           // getUser validates the persisted session before privileged UI is shown.
-          if(session){const {data:{user},error:userError}=await supabaseClient.auth.getUser();state.isAdminLoggedIn=!userError&&user?.app_metadata?.role==='admin';}
+          if(session){const {data:{user},error:userError}=await supabaseClient.auth.getUser();state.isAdminLoggedIn=!userError&&globalThis.SmashCourtCloudModels.hasAdminRole(user);}
           state.viewMode=state.isAdminLoggedIn?'admin':'customer';
           supabaseClient.auth.onAuthStateChange((event,session)=>{
             if(event==='SIGNED_OUT'||(!session&&state.isAdminLoggedIn)){

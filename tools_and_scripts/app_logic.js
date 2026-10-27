@@ -20,37 +20,8 @@
       function minutesToTime(value) { return Core.time(Math.max(300, Math.min(1380, value))); }
       function calculateTimeRangeFee(start, end) { return Core.fee(start, end); }
       function parseSlotRange(slot) { return Core.ranges(slot)[0]; }
-      function bookingRanges(booking) { try { return Core.ranges(booking.slot); } catch { return []; } }
-      function bookingStartAt(booking) {
-        if (!booking || !/^\d{4}-\d{2}-\d{2}$/.test(booking.bookingDate || '')) return null;
-        const range = bookingRanges(booking)[0];
-        if (!range) return null;
-        const timestamp = Date.parse(`${booking.bookingDate}T${Core.time(range.startMin)}:00+07:00`);
-        return Number.isFinite(timestamp) ? timestamp : null;
-      }
-      function bookingStartTime(booking) {
-        const range = booking && bookingRanges(booking)[0];
-        return range ? Core.time(range.startMin) : '';
-      }
-      function isBookingAwaitingStart(booking, now = Date.now()) {
-        const startAt = bookingStartAt(booking);
-        return startAt !== null && now < startAt;
-      }
-      function courtTiming(court, now = Date.now()) {
-        const booking = state.bookings.find(b => String(b.id) === String(court.bookingId));
-        const scheduledStartAt = bookingStartAt(booking);
-        const recordedStartAt = Date.parse(court.startedAt || '');
-        const startAt = scheduledStartAt === null
-          ? (Number.isFinite(recordedStartAt) ? recordedStartAt : null)
-          : Math.max(Number.isFinite(recordedStartAt) ? recordedStartAt : scheduledStartAt, scheduledStartAt);
-        return {
-          booking,
-          waiting: scheduledStartAt !== null && now < scheduledStartAt,
-          elapsedMinutes: startAt === null
-            ? Math.max(0, Number(court.elapsedMinutes) || 0)
-            : Math.max(0, Math.floor((now - startAt) / 60000))
-        };
-      }
+      const { bookingRanges, bookingStartAt, bookingStartTime, isBookingAwaitingStart } = globalThis.SmashCourtBookingRules;
+      function courtTiming(court, now = Date.now()) { return globalThis.SmashCourtBookingRules.courtTiming(court, state.bookings, now); }
       function selectedDate() { return state.isAdminLoggedIn && state.viewMode === 'admin' ? state.adminScheduleDate || Core.dateKey() : Core.bookingDate(state.customerDay); }
       function bookingOnDay(booking) { return booking.bookingDate === selectedDate() && ['reserved','checked_in'].includes(booking.status); }
       function conflicts(booking, start, end) { return bookingOnDay(booking) && bookingRanges(booking).some(r => Core.overlap(r, {startMin:start,endMin:end})); }

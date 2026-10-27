@@ -4,6 +4,14 @@ const { spawnSync } = require('node:child_process');
 const acorn = require('acorn');
 const root = path.resolve(__dirname, '..');
 function build() {
+  // Keep every entry point (including historical wrappers) compiling the same sources.
+  const compiled = spawnSync(process.execPath, [path.join(root, 'node_modules/typescript/bin/tsc'), '-p', path.join(root, 'tsconfig.json')], { cwd: root, encoding: 'utf8' });
+  if (compiled.status !== 0) throw new Error(compiled.error?.message || compiled.stdout + compiled.stderr);
+  function browserModule(name, globalName, dependencies = {}) {
+    const js = fs.readFileSync(path.join(root, '.build', name + '.js'), 'utf8');
+    const imports = Object.entries(dependencies).map(([key, value]) => JSON.stringify(key) + ': globalThis.' + value).join(',');
+    return '(function () { const module = { exports: {} }; const require = name => { const imports = {' + imports + '}; if (!(name in imports)) throw new Error("Unknown browser module: " + name); return imports[name]; };\n' + js + '\nglobalThis.' + globalName + ' = module.exports;\n})();';
+  }
   const out = path.join(root, 'public');
   fs.mkdirSync(path.join(out, 'assets'), { recursive: true });
   const cloud = fs.readFileSync(path.join(__dirname, 'cloud_module.js'), 'utf8');
@@ -44,7 +52,7 @@ function build() {
   }
   escapeTemplates(htmlAst);
   for(const e of htmlEdits.sort((a,b)=>b.start-a.start))app=app.slice(0,e.start)+e.text+app.slice(e.end);
-  const script = fs.readFileSync(path.join(__dirname, 'app_core.js'), 'utf8') + '\n' + app;
+  const script = browserModule('app_core', 'SmashCourtCore') + '\n' + browserModule('cloud_models', 'SmashCourtCloudModels') + '\n' + browserModule('booking_rules', 'SmashCourtBookingRules', { './app_core': 'SmashCourtCore' }) + '\n' + app;
   new (require('node:vm').Script)(script);
   for (const name of ['index','pc','mobile']) {
     const template = fs.readFileSync(path.join(root,'templates',name+'.html'),'utf8');

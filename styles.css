@@ -18,3 +18,19 @@
 #admin-nav-bar .nav-tab-btn:not(.bg-emerald-500):hover { color: #0f172a !important; background: #f1f5f9 !important; }
 #customer-portal .shadow-xs, #customer-portal .shadow-md { box-shadow: none; }
 #customer-portal .rounded-2xl { border-radius: .875rem; }
+
+/* The dedicated mobile route stays phone-sized even when opened on a desktop. */
+@media (min-width: 768px) {
+  body.mobile-layout > header,
+  body.mobile-layout #admin-workspace { width: 100%; max-width: 28rem; margin-inline: auto; }
+  body.mobile-layout #admin-workspace main { padding-inline: .75rem; }
+  body.mobile-layout #admin-workspace main [class~="lg:grid-cols-12"] { grid-template-columns: minmax(0, 1fr); }
+  body.mobile-layout #admin-workspace main [class~="lg:col-span-8"],
+  body.mobile-layout #admin-workspace main [class~="lg:col-span-4"] { grid-column: span 1 / span 1; }
+  body.mobile-layout #admin-workspace main [class~="md:grid-cols-2"],
+  body.mobile-layout #admin-workspace main [class~="lg:grid-cols-4"],
+  body.mobile-layout #admin-workspace main [class~="xl:grid-cols-4"] { grid-template-columns: minmax(0, 1fr); }
+  body.mobile-layout #admin-workspace #courts-grid { grid-template-columns: minmax(0, 1fr); }
+  body.mobile-layout #admin-workspace #pos-products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.mobile-layout #admin-workspace #kpi-shortcuts-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

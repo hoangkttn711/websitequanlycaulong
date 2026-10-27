@@ -918,8 +918,6 @@
         document.getElementById('admin-workspace').classList.toggle('hidden', !showAdminWorkspace);
         document.getElementById('admin-nav-bar').classList.toggle('hidden', !showAdminWorkspace);
         document.getElementById('btn-open-admin-login').classList.toggle('hidden', isAdmin);
-        const customerBottomNav = document.getElementById('customer-bottom-nav');
-        if (customerBottomNav) customerBottomNav.classList.toggle('hidden', showAdminWorkspace);
         const adminHeaderControls = document.getElementById('admin-header-controls');
         if (adminHeaderControls) adminHeaderControls.classList.toggle('hidden', !isAdmin);
 

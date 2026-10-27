@@ -137,7 +137,7 @@
   </header>
 
 
-  <section id="customer-portal" class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 space-y-5">
+  <section id="customer-portal" class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-8 space-y-5">
     <!-- Top Segmented Switch -->
     <div class="bg-white p-1.5 sm:p-2 rounded-2xl shadow-xs border border-slate-200 max-w-md mx-auto grid grid-cols-2 gap-1.5 sm:gap-2">
       <button type="button" data-cust-tab="book" class="cust-tab-btn py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 sm:gap-2 bg-emerald-600 text-white shadow-xs transition">
@@ -209,6 +209,11 @@
               <button type="button" data-matrix-jump="05:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Sáng</button>
               <button type="button" data-matrix-jump="12:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Trưa</button>
               <button type="button" data-matrix-jump="17:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Chiều tối</button>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="hidden sm:inline text-[11px] text-slate-500">Chuyển giờ</span>
+              <button type="button" id="btn-matrix-scroll-left" class="px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold" aria-label="Khung giờ trước" title="Khung giờ trước">←</button>
+              <button type="button" id="btn-matrix-scroll-right" class="px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold" aria-label="Khung giờ tiếp" title="Khung giờ tiếp">→</button>
             </div>
           </div>
         </div>
@@ -728,27 +733,6 @@
 
     <!-- ==================== MODAL: CHỌN THÊM NƯỚC & PHỤ KIỆN KHI ĐẶT SÂN ==================== -->
 
-
-  <nav id="customer-bottom-nav" class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-1.5 shadow-2xl">
-    <div class="max-w-md mx-auto grid grid-cols-4 gap-1 text-center">
-      <button type="button" onclick="document.querySelector('[data-cust-tab=book]').click(); window.scrollTo({top:0, behavior:'smooth'});" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-emerald-600 font-black text-[10px] active:scale-95 transition">
-        <span class="text-base leading-tight">🏸</span>
-        <span>Đặt Sân</span>
-      </button>
-      <button type="button" onclick="document.querySelector('[data-cust-tab=shop]').click(); window.scrollTo({top:0, behavior:'smooth'});" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-slate-600 font-bold text-[10px] active:scale-95 transition">
-        <span class="text-base leading-tight">🥤</span>
-        <span>Menu Nước</span>
-      </button>
-      <button type="button" onclick="document.getElementById('cust-my-bookings-box').classList.remove('hidden'); document.getElementById('cust-my-bookings-box').scrollIntoView({behavior:'smooth'});" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-slate-600 font-bold text-[10px] active:scale-95 transition">
-        <span class="text-base leading-tight">📋</span>
-        <span>Lịch đặt</span>
-      </button>
-      <button type="button" onclick="document.getElementById('btn-open-admin-login').click();" class="py-1 px-1 rounded-xl flex flex-col items-center justify-center text-slate-600 font-bold text-[10px] active:scale-95 transition">
-        <span class="text-base leading-tight">👑</span>
-        <span>Quản Lý</span>
-      </button>
-    </div>
-  </nav>
 
 <div role="dialog" aria-modal="true" tabindex="-1" id="modal-cust-addon-picker" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">

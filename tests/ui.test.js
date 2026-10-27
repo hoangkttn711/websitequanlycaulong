@@ -78,7 +78,7 @@ test('admin product writes preserve zero stock, and failures rollback without su
    const commit=p.calls.find(c=>c.name==='app_admin_commit');assert(commit);assert.equal(commit.args.p_state.products[0].stock,0);assert.equal(commit.args.p_state.products[0].price,0);
    p.fail();d.getElementById('prod-name').value='Rejected product';d.getElementById('prod-unit').value='Chai';
    d.getElementById('form-new-product').dispatchEvent(new p.w.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();
-   assert(!p.server().products.some(x=>x.name==='Rejected product'));assert(!d.getElementById('inventory-table-body')?.textContent.includes('Rejected product'));assert.equal(d.getElementById('sync-message').textContent,'Chưa lưu được thay đổi. Dữ liệu vẫn được giữ để bạn thử lại.');
+   assert(!p.server().products.some(x=>x.name==='Rejected product'));assert(!d.getElementById('inventory-table-body')?.textContent.includes('Rejected product'));assert.equal(d.getElementById('sync-message').textContent,'Không thể kết nối máy chủ. Thay đổi chưa lưu vẫn được giữ; vui lòng thử lại sau.');
  }finally{p.dom.window.close();}
 });
 test('rendered booking check-in, POS, and checkout persist together through real PostgreSQL RPCs',async()=>{

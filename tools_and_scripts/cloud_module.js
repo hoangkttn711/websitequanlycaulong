@@ -74,7 +74,7 @@
           if (!writeBusy && generation === serverGeneration) applySnapshot(data);
         } catch (error) {
           ready = false; updateSupabaseBadge(false);
-          setSyncMessage('Không thể kết nối máy chủ. Vui lòng thử lại sau.', true);
+          setSyncMessage('Không thể kết nối máy chủ. Thay đổi chưa lưu vẫn được giữ; vui lòng thử lại sau.', true);
           if (!silent) console.warn(error);
         } finally { readBusy = false; }
       }

@@ -252,8 +252,28 @@
       }
       function renderPendingOrders() {
         const el=document.getElementById('pending-orders'); if(!el) return;
-        el.innerHTML=legacyWarnings()+'<h3 class="font-bold">Đơn chờ xác nhận ('+orders.filter(o=>o.status==='pending').length+')</h3>'+orders.filter(o=>o.status==='pending').map(o=>
-          '<div class="border rounded-xl p-3 my-2"><p>'+Core.escapeHTML(o.note||'Nhận tại quầy')+'</p><p>'+o.items.map(i=>Core.escapeHTML(i.name)+' × '+i.qty).join(', ')+'</p><p>'+formatVND(o.total)+'</p><button class="bg-emerald-600 text-white rounded px-3 py-2" data-accept-order="'+Core.escapeHTML(o.id)+'">Xác nhận đã thu tiền / giao vào sân</button><button class="border rounded px-3 py-2 ml-2" data-reject-order="'+Core.escapeHTML(o.id)+'">Từ chối đơn</button></div>').join('');
+        const pending=orders.filter(o=>o.status==='pending');
+        const warnings=legacyWarnings();
+        el.classList.toggle('hidden',pending.length===0&&!warnings);
+        el.innerHTML=warnings+(pending.length?`
+          <div class="rounded-2xl border border-amber-200 bg-white shadow-xs overflow-hidden">
+            <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-amber-100 bg-amber-50/70">
+              <h3 class="text-sm font-bold text-slate-900">Đơn chờ xác nhận</h3>
+              <span class="min-w-7 h-7 px-2 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center">${pending.length}</span>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 p-3 sm:p-4">${pending.map(o=>`
+              <article class="rounded-xl border border-slate-200 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="min-w-0 space-y-1">
+                  <p class="text-sm font-semibold text-slate-900">${Core.escapeHTML(o.note||'Nhận tại quầy')}</p>
+                  <p class="text-xs text-slate-600">${o.items.map(i=>Core.escapeHTML(i.name)+' × '+i.qty).join(', ')}</p>
+                  <p class="text-sm font-bold text-emerald-700">${formatVND(o.total)}</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                  <button type="button" class="min-h-10 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold" data-accept-order="${Core.escapeHTML(o.id)}">Xác nhận</button>
+                  <button type="button" class="min-h-10 px-3 py-2 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-700 text-xs font-semibold" data-reject-order="${Core.escapeHTML(o.id)}">Từ chối</button>
+                </div>
+              </article>`).join('')}</div>
+          </div>`:'');
       }
       function legacyWarnings() {
         const bookings=state.bookings.filter(b=>!b.bookingDate&&b.status==='reserved');

@@ -55,7 +55,7 @@
  *,::before,::after{box-sizing:border-box}
  button,input,select{min-height:44px} button[data-matrix-slot-court]{min-height:44px}
  [role=dialog] button{min-width:44px} button:focus-visible{outline:3px solid #059669;outline-offset:2px}
- #pending-orders{margin-top:1rem} #sync-message{position:sticky;top:0;z-index:60;padding:.65rem 1rem;border-bottom:1px solid #fecaca;background:#fef2f2;color:#991b1b;font-size:.875rem}
+ #sync-message{position:sticky;top:0;z-index:60;padding:.65rem 1rem;border-bottom:1px solid #fecaca;background:#fef2f2;color:#991b1b;font-size:.875rem}
  </style></head>
 <body class="mobile-layout bg-slate-50 min-h-screen flex flex-col font-sans text-slate-900 antialiased">
 <div id="sync-message" role="status" hidden></div>
@@ -303,24 +303,24 @@
   </section>
 
 <div id="admin-workspace" class="hidden flex-1 flex flex-col">
-<label class="block px-4 pt-4 font-bold text-sm" for="admin-schedule-date">Ngày xem lịch quản trị</label><input class="mx-4 border rounded px-3 py-2" id="admin-schedule-date" type="date" />
-<section id="pending-orders" class="p-4" aria-label="Đơn hàng chờ xác nhận"></section>
-  <!-- TOP KPI SHORTCUT BAR (GỌN ĐẸP, CÓ THỂ ẨN/HIỆN & BẤM ĐỂ NHẢY TỚI MỤC LIÊN QUAN) -->
-  <section class="bg-white border-b border-slate-200 shadow-xs">
-    <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2">
-      <!-- Slim Header Bar to Toggle Quick Shortcuts -->
-      <div class="flex items-center justify-between gap-2">
+  <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+    <section id="pending-orders" class="hidden space-y-3" aria-label="Đơn hàng chờ xác nhận"></section>
+  </div>
+  <!-- Admin summary shortcuts -->
+  <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+      <!-- Summary toggle -->
+      <div class="flex items-center justify-between gap-2 px-4 py-3">
         <div class="flex items-center gap-2 text-xs text-slate-600">
           <span class="font-bold text-slate-800">Tổng quan</span>
-          <span class="hidden sm:inline text-slate-400">• Bấm vào từng ô để mở nhanh mục tương ứng</span>
         </div>
         <button type="button" id="btn-toggle-kpi-strip" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold flex items-center gap-1 transition">
           <span id="kpi-toggle-label">Thu gọn ▲</span>
         </button>
       </div>
 
-      <!-- Compact 4-Shortcut Grid (Stacked vertically inside each card so mobile text NEVER squishes!) -->
-      <div id="kpi-shortcuts-panel" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 pb-1">
+      <!-- Summary metrics -->
+      <div id="kpi-shortcuts-panel" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 px-3 pb-3">
         <!-- Shortcut 1 -> Sơ đồ Sân -->
         <button type="button" data-nav="courts" class="text-left p-3 rounded-xl bg-emerald-50/80 hover:bg-emerald-100/80 border border-emerald-200 transition flex flex-col justify-between group">
           <div class="flex items-center justify-between w-full">
@@ -496,7 +496,11 @@
           <h2 class="text-lg font-bold text-slate-900">Lịch Đặt Sân Toàn Hệ Thống</h2>
           <p class="text-xs text-slate-500">Quản lý các ca đặt trước, khách cố định theo tháng và khách vãng lai đặt cọc</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <label for="admin-schedule-date" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+            <span>Ngày</span>
+            <input class="min-h-0 w-36 border-0 bg-transparent p-0 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-0" id="admin-schedule-date" type="date" />
+          </label>
           <button type="button" id="btn-open-new-booking" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             <span>Tạo lịch mới</span>

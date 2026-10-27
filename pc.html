@@ -1134,6 +1134,17 @@
 
     (function () {
       const Core = globalThis.SmashCourtCore;
+      const currentPath = window.location.pathname;
+      const isMobilePage = /\/mobile\.html$/i.test(currentPath);
+      const isEntryPage = currentPath.endsWith('/') || /\/(?:index|pc)\.html$/i.test(currentPath) || !/\.[^/]+$/.test(currentPath);
+      const isPhoneViewport = window.matchMedia?.('(max-width: 640px)').matches ?? window.innerWidth <= 640;
+      if (isEntryPage && !isMobilePage && isPhoneViewport) {
+        const target = new URL(window.location.href);
+        const basePath = currentPath.replace(/(?:index|pc)\.html$/i, '').replace(/\/?$/, '/');
+        target.pathname = basePath + 'mobile.html';
+        window.location.replace(target.href);
+        return;
+      }
       const STORAGE_KEY = 'smashcourt_pro_state_v6';
 
       // Time & Pricing Helpers:

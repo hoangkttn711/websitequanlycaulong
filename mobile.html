@@ -1112,6 +1112,36 @@
       function calculateTimeRangeFee(start, end) { return Core.fee(start, end); }
       function parseSlotRange(slot) { return Core.ranges(slot)[0]; }
       function bookingRanges(booking) { try { return Core.ranges(booking.slot); } catch { return []; } }
+      function bookingStartAt(booking) {
+        if (!booking || !/^\d{4}-\d{2}-\d{2}$/.test(booking.bookingDate || '')) return null;
+        const range = bookingRanges(booking)[0];
+        if (!range) return null;
+        const timestamp = Date.parse(`${booking.bookingDate}T${Core.time(range.startMin)}:00+07:00`);
+        return Number.isFinite(timestamp) ? timestamp : null;
+      }
+      function bookingStartTime(booking) {
+        const range = booking && bookingRanges(booking)[0];
+        return range ? Core.time(range.startMin) : '';
+      }
+      function isBookingAwaitingStart(booking, now = Date.now()) {
+        const startAt = bookingStartAt(booking);
+        return startAt !== null && now < startAt;
+      }
+      function courtTiming(court, now = Date.now()) {
+        const booking = state.bookings.find(b => String(b.id) === String(court.bookingId));
+        const scheduledStartAt = bookingStartAt(booking);
+        const recordedStartAt = Date.parse(court.startedAt || '');
+        const startAt = scheduledStartAt === null
+          ? (Number.isFinite(recordedStartAt) ? recordedStartAt : null)
+          : Math.max(Number.isFinite(recordedStartAt) ? recordedStartAt : scheduledStartAt, scheduledStartAt);
+        return {
+          booking,
+          waiting: scheduledStartAt !== null && now < scheduledStartAt,
+          elapsedMinutes: startAt === null
+            ? Math.max(0, Number(court.elapsedMinutes) || 0)
+            : Math.max(0, Math.floor((now - startAt) / 60000))
+        };
+      }
       function selectedDate() { return state.isAdminLoggedIn && state.viewMode === 'admin' ? state.adminScheduleDate || Core.dateKey() : Core.bookingDate(state.customerDay); }
       function bookingOnDay(booking) { return booking.bookingDate === selectedDate() && ['reserved','checked_in'].includes(booking.status); }
       function conflicts(booking, start, end) { return bookingOnDay(booking) && bookingRanges(booking).some(r => Core.overlap(r, {startMin:start,endMin:end})); }
@@ -1325,6 +1355,7 @@
           const courtFee = Math.round(court.bookedHours * court.hourlyRate);
           const totalBill = getCourtCurrentTotal(court);
           const itemCount = (court.items || []).reduce((s, i) => s + i.qty, 0);
+          const timing = court.status === 'active' ? courtTiming(court) : null;
 
           // Visual distinction: Sân 1 & 2 are Sân thảm xanh, Sân 3 & 4 are Sân thảm xám
           const isGreyMat = court.matColor === 'grey' || court.id >= 3;
@@ -1332,7 +1363,9 @@
 
           let badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Sân Trống</span>`;
           if (court.status === 'active') {
-            badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>Đang Chơi (${court.startedAt ? Math.max(0, Math.floor((Date.now()-Date.parse(court.startedAt))/60000)) : court.elapsedMinutes}p)</span>`;
+            badgeHtml = timing.waiting
+              ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">Đã nhận · Bắt đầu ${bookingStartTime(timing.booking)}</span>`
+              : `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>Đang Chơi (${timing.elapsedMinutes}p)</span>`;
           } else if (court.status === 'reserved') {
             badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">Đã Đặt Trước</span>`;
           } else if (court.status === 'maintenance') {
@@ -1359,7 +1392,7 @@
                   ${court.status === 'active' ? `
                     <div>
                       <p class="text-xs font-bold text-slate-900 truncate">${Core.escapeHTML(court.customer)}</p>
-                      <p class="text-[11px] text-slate-500 mt-0.5">Vào sân: <strong>${court.startTime}</strong> • Thời lượng: <strong>${court.bookedHours}h</strong> (${formatVND(court.hourlyRate)}/h)</p>
+                      <p class="text-[11px] text-slate-500 mt-0.5">${timing.waiting ? 'Bắt đầu theo lịch:' : 'Vào sân:'} <strong>${court.startTime}</strong> • Thời lượng: <strong>${court.bookedHours}h</strong> (${formatVND(court.hourlyRate)}/h)</p>
                     </div>
                     <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
                       <div class="flex justify-between">
@@ -1624,11 +1657,17 @@
 
                 const isCourtActive = court.status === 'active' && isToday
                   && bookingEntry.ranges.some(range => currentMin >= range.startMin && currentMin < range.endMin);
+                const isWaiting = booking.status === 'checked_in' && isBookingAwaitingStart(booking);
                 let bgStyle = 'bg-amber-100 hover:bg-amber-200 border-r border-amber-300 text-amber-950 font-bold';
                 let tagText = booking.deposit ? formatVND(booking.deposit) : 'Đã đặt';
                 if (booking.status === 'checked_in' || isCourtActive) {
-                  bgStyle = 'bg-emerald-600 hover:bg-emerald-700 border-r border-emerald-500 text-white font-bold';
-                  tagText = 'Đang đánh';
+                  if (isWaiting) {
+                    bgStyle = 'bg-amber-200 hover:bg-amber-300 border-r border-amber-400 text-amber-950 font-bold';
+                    tagText = `Đã nhận · ${bookingStartTime(booking)}`;
+                  } else {
+                    bgStyle = 'bg-emerald-600 hover:bg-emerald-700 border-r border-emerald-500 text-white font-bold';
+                    tagText = 'Đang đánh';
+                  }
                 } else if (booking.status === 'completed') {
                   bgStyle = 'bg-slate-200 hover:bg-slate-300 text-slate-700';
                   tagText = 'Đã xong';
@@ -1638,7 +1677,7 @@
                   <td colspan="${colspan}" class="h-11 sm:h-12 border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
                     <button type="button" data-admin-booking-id="${Core.escapeHTML(booking.id)}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="Khách: ${Core.escapeHTML(booking.customer)} • SĐT: ${Core.escapeHTML(booking.phone || 'Chưa có')} • ${Core.escapeHTML(booking.slot)} • Cọc: ${formatVND(booking.deposit)} • Bấm để xem / nhận sân">
                       <span class="font-black text-[11px] truncate w-full px-0.5 text-center leading-tight">${Core.escapeHTML(booking.customer)}</span>
-                      <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${Core.escapeHTML(booking.phone ? booking.phone.slice(-4) : tagText)}</span>
+                      <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${Core.escapeHTML(isWaiting ? tagText : booking.phone ? booking.phone.slice(-4) : tagText)}</span>
                     </button>
                   </td>
                 `);
@@ -1712,6 +1751,8 @@
           bookingsBody.innerHTML = state.bookings.filter(b => b.bookingDate === selectedDate() || !b.bookingDate).map(b => {
             const court = state.courts.find(c => c.id === Number(b.courtId));
             const courtName = court ? `${court.name} (${court.zone})` : `Sân ${b.courtId}`;
+            const isWaiting = b.status === 'checked_in' && isBookingAwaitingStart(b);
+            const statusText = isWaiting ? `Đã nhận · ${bookingStartTime(b)}` : ({checked_in:'Đang đánh',reserved:'Chờ nhận',cancelled:'Đã hủy',completed:'Đã xong'})[b.status] || 'Cần kiểm tra';
 
             return `
               <tr class="hover:bg-slate-50/80">
@@ -1722,8 +1763,8 @@
                 <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[11px] bg-slate-100 font-medium">${b.type === 'Cố định tháng' ? 'Khách cố định' : 'Vãng lai'}</span></td>
                 <td class="py-3 px-4 text-right font-bold text-emerald-600">${formatVND(b.deposit)}</td>
                 <td class="py-3 px-4">
-                  <span class="px-2 py-0.5 rounded text-[11px] font-bold ${b.status === 'checked_in' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                    ${({checked_in:'Đang đánh',reserved:'Chờ nhận',cancelled:'Đã hủy',completed:'Đã xong'})[b.status] || 'Cần kiểm tra'}${!b.bookingDate ? ' • Chưa có ngày' : ''}
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold ${b.status === 'checked_in' && !isWaiting ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                    ${statusText}${!b.bookingDate ? ' • Chưa có ngày' : ''}
                   </span>
                 </td>
                 <td class="py-3 px-4 text-right">

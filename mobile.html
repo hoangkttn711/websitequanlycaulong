@@ -533,22 +533,6 @@
           </table>
         </div>
 
-        <!-- Fast Time Jump Bar & Scroll Navigation for Admin -->
-        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[11px] font-semibold text-slate-500">Đến:</span>
-            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Sáng</button>
-            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Trưa</button>
-            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition cursor-pointer">Tối</button>
-          </div>
-          <div class="flex items-center gap-2">
-
-            <div class="flex items-center gap-1">
-              <button type="button" id="btn-admin-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
-              <button type="button" id="btn-admin-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Bookings List Table -->
@@ -2764,61 +2748,7 @@ function updateDynamicDateLabels() {
         }
       }
 
-      function scrollToMatrixTime(time, smooth = true) {
-        const wrapper = document.getElementById('cust-matrix-scroll-wrapper');
-        if (!wrapper) return;
-        const targetTh = document.querySelector(`[data-slot-start="${time}"]`);
-        const stickyTh = document.getElementById('cust-alobo-matrix-header')?.firstElementChild;
-        const stickyWidth = stickyTh ? stickyTh.offsetWidth : 80;
-        if (targetTh) {
-          const scrollPos = Math.max(0, targetTh.offsetLeft - stickyWidth);
-          wrapper.scrollTo({ left: scrollPos, behavior: smooth ? 'smooth' : 'auto' });
-        }
-      }
-
-
-      function scrollToAdminMatrixTime(time, smooth = true) {
-        const wrapper = document.getElementById('admin-matrix-scroll-wrapper');
-        if (!wrapper) return;
-        const targetTh = wrapper.querySelector(`[data-slot-start="${time}"]`);
-        const stickyTh = document.getElementById('admin-alobo-matrix-header')?.firstElementChild;
-        const stickyWidth = stickyTh ? stickyTh.offsetWidth : 80;
-        if (targetTh) {
-          const scrollPos = Math.max(0, targetTh.offsetLeft - stickyWidth);
-          wrapper.scrollTo({ left: scrollPos, behavior: smooth ? 'smooth' : 'auto' });
-        }
-      }
-
       function setupHorizontalScrollInteractions() {
-
-        // Admin Quick Jump Buttons
-        document.querySelectorAll('[data-admin-matrix-jump]').forEach(btn => {
-          if (btn._hasAdminJumpSetup) return;
-          btn._hasAdminJumpSetup = true;
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const time = btn.getAttribute('data-admin-matrix-jump');
-            scrollToAdminMatrixTime(time, true);
-          });
-        });
-
-        // Admin Arrow Navigation Buttons
-        const btnAdminLeft = document.getElementById('btn-admin-matrix-scroll-left');
-        const btnAdminRight = document.getElementById('btn-admin-matrix-scroll-right');
-        const adminWrapper = document.getElementById('admin-matrix-scroll-wrapper');
-        if (btnAdminLeft && !btnAdminLeft._hasNavSetup && adminWrapper) {
-          btnAdminLeft._hasNavSetup = true;
-          btnAdminLeft.addEventListener('click', function () {
-            adminWrapper.scrollBy({ left: -360, behavior: 'smooth' });
-          });
-        }
-        if (btnAdminRight && !btnAdminRight._hasNavSetup && adminWrapper) {
-          btnAdminRight._hasNavSetup = true;
-          btnAdminRight.addEventListener('click', function () {
-            adminWrapper.scrollBy({ left: 360, behavior: 'smooth' });
-          });
-        }
-
         const scrollWrappers = [
           document.getElementById('cust-matrix-scroll-wrapper'),
           ...document.querySelectorAll('.overflow-x-auto.custom-scrollbar')
@@ -2896,33 +2826,6 @@ function updateDynamicDateLabels() {
           }, true);
         });
 
-        // 3. Xử lý các nút bấm nhảy nhanh tới khung giờ (Sáng / Trưa / Tối)
-        document.querySelectorAll('[data-matrix-jump]').forEach(btn => {
-          if (btn._hasJumpSetup) return;
-          btn._hasJumpSetup = true;
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const time = btn.getAttribute('data-matrix-jump');
-            scrollToMatrixTime(time, true);
-          });
-        });
-
-        // 4. Xử lý 2 nút mũi tên điều hướng lướt sang trái / phải
-        const btnLeft = document.getElementById('btn-matrix-scroll-left');
-        const btnRight = document.getElementById('btn-matrix-scroll-right');
-        const custWrapper = document.getElementById('cust-matrix-scroll-wrapper');
-        if (btnLeft && !btnLeft._hasNavSetup && custWrapper) {
-          btnLeft._hasNavSetup = true;
-          btnLeft.addEventListener('click', function () {
-            custWrapper.scrollBy({ left: -360, behavior: 'smooth' });
-          });
-        }
-        if (btnRight && !btnRight._hasNavSetup && custWrapper) {
-          btnRight._hasNavSetup = true;
-          btnRight.addEventListener('click', function () {
-            custWrapper.scrollBy({ left: 360, behavior: 'smooth' });
-          });
-        }
       }
 
 

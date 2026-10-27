@@ -1662,61 +1662,7 @@ function updateDynamicDateLabels() {
         }
       }
 
-      function scrollToMatrixTime(time, smooth = true) {
-        const wrapper = document.getElementById('cust-matrix-scroll-wrapper');
-        if (!wrapper) return;
-        const targetTh = document.querySelector(`[data-slot-start="${time}"]`);
-        const stickyTh = document.getElementById('cust-alobo-matrix-header')?.firstElementChild;
-        const stickyWidth = stickyTh ? stickyTh.offsetWidth : 80;
-        if (targetTh) {
-          const scrollPos = Math.max(0, targetTh.offsetLeft - stickyWidth);
-          wrapper.scrollTo({ left: scrollPos, behavior: smooth ? 'smooth' : 'auto' });
-        }
-      }
-
-
-      function scrollToAdminMatrixTime(time, smooth = true) {
-        const wrapper = document.getElementById('admin-matrix-scroll-wrapper');
-        if (!wrapper) return;
-        const targetTh = wrapper.querySelector(`[data-slot-start="${time}"]`);
-        const stickyTh = document.getElementById('admin-alobo-matrix-header')?.firstElementChild;
-        const stickyWidth = stickyTh ? stickyTh.offsetWidth : 80;
-        if (targetTh) {
-          const scrollPos = Math.max(0, targetTh.offsetLeft - stickyWidth);
-          wrapper.scrollTo({ left: scrollPos, behavior: smooth ? 'smooth' : 'auto' });
-        }
-      }
-
       function setupHorizontalScrollInteractions() {
-
-        // Admin Quick Jump Buttons
-        document.querySelectorAll('[data-admin-matrix-jump]').forEach(btn => {
-          if (btn._hasAdminJumpSetup) return;
-          btn._hasAdminJumpSetup = true;
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const time = btn.getAttribute('data-admin-matrix-jump');
-            scrollToAdminMatrixTime(time, true);
-          });
-        });
-
-        // Admin Arrow Navigation Buttons
-        const btnAdminLeft = document.getElementById('btn-admin-matrix-scroll-left');
-        const btnAdminRight = document.getElementById('btn-admin-matrix-scroll-right');
-        const adminWrapper = document.getElementById('admin-matrix-scroll-wrapper');
-        if (btnAdminLeft && !btnAdminLeft._hasNavSetup && adminWrapper) {
-          btnAdminLeft._hasNavSetup = true;
-          btnAdminLeft.addEventListener('click', function () {
-            adminWrapper.scrollBy({ left: -360, behavior: 'smooth' });
-          });
-        }
-        if (btnAdminRight && !btnAdminRight._hasNavSetup && adminWrapper) {
-          btnAdminRight._hasNavSetup = true;
-          btnAdminRight.addEventListener('click', function () {
-            adminWrapper.scrollBy({ left: 360, behavior: 'smooth' });
-          });
-        }
-
         const scrollWrappers = [
           document.getElementById('cust-matrix-scroll-wrapper'),
           ...document.querySelectorAll('.overflow-x-auto.custom-scrollbar')
@@ -1794,33 +1740,6 @@ function updateDynamicDateLabels() {
           }, true);
         });
 
-        // 3. Xử lý các nút bấm nhảy nhanh tới khung giờ (Sáng / Trưa / Tối)
-        document.querySelectorAll('[data-matrix-jump]').forEach(btn => {
-          if (btn._hasJumpSetup) return;
-          btn._hasJumpSetup = true;
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const time = btn.getAttribute('data-matrix-jump');
-            scrollToMatrixTime(time, true);
-          });
-        });
-
-        // 4. Xử lý 2 nút mũi tên điều hướng lướt sang trái / phải
-        const btnLeft = document.getElementById('btn-matrix-scroll-left');
-        const btnRight = document.getElementById('btn-matrix-scroll-right');
-        const custWrapper = document.getElementById('cust-matrix-scroll-wrapper');
-        if (btnLeft && !btnLeft._hasNavSetup && custWrapper) {
-          btnLeft._hasNavSetup = true;
-          btnLeft.addEventListener('click', function () {
-            custWrapper.scrollBy({ left: -360, behavior: 'smooth' });
-          });
-        }
-        if (btnRight && !btnRight._hasNavSetup && custWrapper) {
-          btnRight._hasNavSetup = true;
-          btnRight.addEventListener('click', function () {
-            custWrapper.scrollBy({ left: 360, behavior: 'smooth' });
-          });
-        }
       }
 
 

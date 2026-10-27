@@ -203,20 +203,6 @@
             <span class="text-[11px] text-slate-400">Cuộn ngang bảng để xem từ 05:00 đến 23:00</span>
           </div>
 
-          <!-- Quick Time Jump Bar & Scroll Navigation -->
-          <div class="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 flex-wrap text-xs">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-[11px] font-bold text-slate-500">Đến:</span>
-              <button type="button" data-matrix-jump="05:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Sáng</button>
-              <button type="button" data-matrix-jump="12:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Trưa</button>
-              <button type="button" data-matrix-jump="17:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">Chiều tối</button>
-            </div>
-            <div class="flex items-center gap-1">
-              <span class="hidden sm:inline text-[11px] text-slate-500">Chuyển giờ</span>
-              <button type="button" id="btn-matrix-scroll-left" class="px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold" aria-label="Khung giờ trước" title="Khung giờ trước">←</button>
-              <button type="button" id="btn-matrix-scroll-right" class="px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold" aria-label="Khung giờ tiếp" title="Khung giờ tiếp">→</button>
-            </div>
-          </div>
         </div>
 
         <!-- Hidden validator elements (Kept intact so JS never breaks) -->
@@ -591,22 +577,6 @@
           </table>
         </div>
 
-        <!-- Fast Time Jump Bar & Scroll Navigation for Admin -->
-        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[11px] font-semibold text-slate-500">Đến:</span>
-            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Sáng</button>
-            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">Trưa</button>
-            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition cursor-pointer">Tối</button>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-[11px] text-slate-500 hidden sm:inline">Vuốt, kéo hoặc dùng mũi tên</span>
-            <div class="flex items-center gap-1">
-              <button type="button" id="btn-admin-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
-              <button type="button" id="btn-admin-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Bookings List Table -->

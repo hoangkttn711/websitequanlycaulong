@@ -559,7 +559,7 @@
 
                 slotCells.push(`
                   <td colspan="${colspan}" class="h-11 sm:h-12 border-r border-b border-slate-200 p-0 text-center select-none ${bgStyle}">
-                    <button type="button" ${booking.status === 'completed' ? '' : `data-admin-booking-id="${booking.id}"`} class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight ${booking.status === 'completed' ? 'cursor-default' : 'cursor-pointer overflow-hidden transition-opacity hover:opacity-90'}" title="${booking.status === 'completed' ? 'Đã hoàn tất' : 'Bấm để nhận sân'} • ${booking.slot} • Cọc: ${formatVND(booking.deposit)}">
+                    <button type="button" data-admin-booking-id="${booking.id}" class="w-full h-full p-0.5 flex flex-col items-center justify-center leading-tight cursor-pointer overflow-hidden transition-opacity hover:opacity-90" title="${Core.escapeHTML(`${booking.customer} • ${booking.slot} • ${bookingPaymentInfo(booking).label}${booking.deposit ? ' • Đã cọc: ' + formatVND(booking.deposit) : ''}`)}">
                       <span class="font-black text-[11px] truncate w-full px-0.5 text-center leading-tight">${booking.customer}</span>
                       <span class="text-[9px] font-semibold opacity-90 truncate w-full px-0.5 text-center leading-none mt-0.5">${booking.status === 'completed' || isWaiting ? tagText : booking.phone ? booking.phone.slice(-4) : tagText}</span>
                     </button>
@@ -681,6 +681,98 @@
         const courtCount = new Set([...adminScheduleSelection.values()].map(item => item.courtId)).size;
         bar.classList.toggle('hidden', count === 0);
         label.textContent = `${count} khung giờ đã chọn trên ${courtCount} sân`;
+      }
+
+      function bookingPaymentInfo(booking) {
+        if (booking.status === 'completed') {
+          const court = state.courts.find(item => item.id === Number(booking.courtId));
+          const range = bookingRanges(booking)[0];
+          const candidates = court && range && booking.bookingDate
+            ? state.invoices.filter(invoice => invoice.type === 'court'
+                && invoice.customer === booking.customer
+                && invoice.courtName === court.name
+                && Core.invoiceDate(invoice) === booking.bookingDate)
+            : [];
+          const scheduledEnd = range && booking.bookingDate
+            ? Date.parse(`${booking.bookingDate}T${Core.time(range.endMin)}:00+07:00`)
+            : 0;
+          const invoice = candidates.slice().sort((a, b) =>
+            Math.abs(Date.parse(a.createdAt || '') - scheduledEnd) - Math.abs(Date.parse(b.createdAt || '') - scheduledEnd)
+          )[0];
+          if (!invoice) return {
+            label: 'Chưa đối chiếu hóa đơn',
+            detail: 'Phiếu đã đánh dấu hoàn tất nhưng chưa tìm thấy hóa đơn sân khớp ngày, khách và sân.',
+            tone: 'amber'
+          };
+          if (Number(invoice.refundAmount || 0) > 0) return {
+            label: 'Cần hoàn cọc',
+            detail: `Hóa đơn đã chốt; cần hoàn ${formatVND(invoice.refundAmount)}.`,
+            tone: 'amber'
+          };
+          const depositText = Number(invoice.depositApplied || 0) > 0
+            ? `Đã áp dụng cọc ${formatVND(invoice.depositApplied)}; `
+            : '';
+          const methodText = invoice.paymentMethod ? ` qua ${invoice.paymentMethod}` : '';
+          return {
+            label: 'Đã thanh toán',
+            detail: `${depositText}thu thêm ${formatVND(invoice.paymentAmount ?? invoice.total)}${methodText}.`,
+            tone: 'emerald'
+          };
+        }
+        if (Number(booking.deposit || 0) > 0) return {
+          label: 'Chưa thanh toán đủ',
+          detail: `Đã nhận cọc ${formatVND(booking.deposit)}; tiền sân chưa chốt hóa đơn.`,
+          tone: 'amber'
+        };
+        return {
+          label: 'Chưa thanh toán',
+          detail: 'Chưa ghi nhận cọc hoặc hóa đơn tiền sân.',
+          tone: 'amber'
+        };
+      }
+
+      function showBookingDetails(bookingId) {
+        const booking = state.bookings.find(item => String(item.id) === String(bookingId));
+        if (!booking) {
+          showToast('Không tìm thấy phiếu đặt sân.', 'warn');
+          return;
+        }
+        const court = state.courts.find(item => item.id === Number(booking.courtId));
+        const payment = bookingPaymentInfo(booking);
+        const statusText = {
+          reserved: 'Chờ nhận sân',
+          checked_in: 'Đang đánh',
+          completed: 'Đã xong',
+          cancelled: 'Đã hủy'
+        }[booking.status] || 'Cần kiểm tra';
+        const statusTone = booking.status === 'completed' ? 'bg-slate-100 text-slate-700'
+          : booking.status === 'checked_in' ? 'bg-emerald-100 text-emerald-800'
+          : booking.status === 'cancelled' ? 'bg-rose-100 text-rose-700'
+          : 'bg-amber-100 text-amber-800';
+        const paymentTone = payment.tone === 'emerald'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          : 'border-amber-200 bg-amber-50 text-amber-900';
+        const setText = (id, value) => { document.getElementById(id).textContent = value; };
+
+        setText('booking-detail-customer', booking.customer || '—');
+        setText('booking-detail-phone', booking.phone || '—');
+        setText('booking-detail-date', booking.bookingDate ? booking.bookingDate.split('-').reverse().join('/') : 'Chưa có ngày');
+        setText('booking-detail-court', court ? `${court.name} (${court.zone})` : `Sân ${booking.courtId}`);
+        setText('booking-detail-slot', booking.slot || '—');
+        setText('booking-detail-type', booking.type === 'Cố định tháng' ? 'Khách cố định' : 'Vãng lai');
+        setText('booking-detail-deposit', formatVND(booking.deposit));
+        setText('booking-detail-payment-status', payment.label);
+        setText('booking-detail-payment-note', payment.detail);
+
+        const statusEl = document.getElementById('booking-detail-status');
+        statusEl.className = `px-2.5 py-1 rounded-full text-[11px] font-bold ${statusTone}`;
+        statusEl.textContent = statusText;
+        const paymentCard = document.getElementById('booking-detail-payment-card');
+        paymentCard.className = `rounded-xl border p-3 ${paymentTone}`;
+        const checkInButton = document.getElementById('btn-booking-detail-checkin');
+        checkInButton.setAttribute('data-booking-checkin', booking.id);
+        checkInButton.classList.toggle('hidden', booking.status !== 'reserved' || booking.bookingDate !== Core.dateKey());
+        document.getElementById('modal-booking-detail').classList.remove('hidden');
       }
 
       function syncAdminBookingSelectionModal() {
@@ -1854,10 +1946,7 @@ function updateDynamicDateLabels() {
         const bookingCell = e.target.closest('[data-admin-booking-id]');
         if (bookingCell) {
           const id = bookingCell.getAttribute('data-admin-booking-id');
-          if (state.bookings.find(booking => booking.id === id)?.status === 'completed') return;
-          const button = document.querySelector('[data-booking-checkin="' + id + '"]');
-          if (button) setTimeout(() => button.click(), 0);
-          else showToast('Lịch này không còn ở trạng thái chờ nhận sân.', 'warn');
+          showBookingDetails(id);
           return;
         }
         const exportLegacy=e.target.closest('[data-export-legacy]');
@@ -2381,6 +2470,7 @@ function updateDynamicDateLabels() {
             }
             saveState();
             renderAll();
+            document.getElementById('modal-booking-detail').classList.add('hidden');
             showToast(`Đã check-in lịch đặt của ${bk.customer} vào Sân ${bk.courtId}`);
           }
           return;

@@ -133,7 +133,7 @@
       }
       function clearAdminViews() {
         for(const id of ['courts-grid','bookings-table-body','inventory-table-body','invoices-table-body','admin-alobo-matrix-body','pending-orders','pos-products-grid','pos-cart-items','checkout-items-list','inv-detail-body']) document.getElementById(id)?.replaceChildren();
-        for(const id of ['modal-checkout','modal-invoice-detail','modal-checkin','modal-booking','modal-product']) document.getElementById(id)?.classList.add('hidden');
+        for(const id of ['modal-checkout','modal-invoice-detail','modal-checkin','modal-booking','modal-booking-detail','modal-product']) document.getElementById(id)?.classList.add('hidden');
         if(weeklyChartInstance){weeklyChartInstance.destroy();weeklyChartInstance=null;}
         if(categoryChartInstance){categoryChartInstance.destroy();categoryChartInstance=null;}
       }

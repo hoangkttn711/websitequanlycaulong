@@ -118,7 +118,7 @@
             for(const saved of dialogsBefore)saved.el.classList.toggle('hidden',saved.hidden);
             ready=false;
             setSyncMessage('Chưa lưu được thay đổi. Dữ liệu vẫn được giữ để bạn thử lại.', true);
-            showToast(error.message, 'warn');
+            showToast('Chưa lưu được thay đổi. Dữ liệu vẫn được giữ để bạn thử lại.', 'warn');
           } finally { writeBusy = false; }
           if (!ready) void syncFromSupabase(true);
         };

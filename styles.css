@@ -7,6 +7,12 @@ html {
   text-size-adjust: 100%;
 }
 
+@media (max-width: 640px) {
+  #modal-admin-login input {
+    font-size: 16px;
+  }
+}
+
 /* Keep the customer booking flow calm and easy to scan. */
 #sync-message {
   position: sticky;

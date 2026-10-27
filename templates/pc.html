@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>SmashCourt Pro — Quản Lý Sân Cầu Lông & POS Dịch Vụ</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script src="assets/chart.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+    .court-surface-active {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+    .court-surface-free {
+      background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+    }
+    .court-surface-reserved {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    }
+    .court-surface-maint {
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.65; }
+    }
+    .live-dot {
+      animation: pulse-dot 1.8s infinite;
+    }
+  </style>
+  <script src="assets/supabase.js"></script>
+<style>
+ *,::before,::after{box-sizing:border-box}
+ button,input,select{min-height:44px} button[data-matrix-slot-court]{min-height:44px}
+ [role=dialog] button{min-width:44px} button:focus-visible{outline:3px solid #059669;outline-offset:2px}
+ #pending-orders{margin-top:1rem} #sync-message{position:sticky;top:0;z-index:60;padding:.65rem;background:#fef3c7;color:#78350f;font-size:.8rem}
+ </style></head>
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-900 antialiased">
+<div id="sync-message" role="status">Đang kết nối máy chủ…</div>
+
+  <div class="bg-slate-950 text-slate-300 py-2 px-6 text-xs border-b border-slate-800 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 live-dot"></span>
+      <span class="font-bold text-white text-xs sm:text-sm">🏸 SmashCourt Pro • Giao Diện Máy Tính (Widescreen PC Dashboard)</span>
+      <span class="hidden md:inline text-[11px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Tối ưu cho Màn hình rộng / Laptop / Máy tính</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-slate-400">Xem thử bản mobile:</span>
+      <a href="mobile.html" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 text-xs font-extrabold flex items-center gap-1.5 transition shadow-sm">
+        <span>📱 Mở Giao Diện Mobile</span>
+      </a>
+      <a href="index.html" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition">
+        <span>🌐 Bản Tự Động Thích Ứng</span>
+      </a>
+    </div>
+  </div>
+  
+
+  <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3 gap-3">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-inner shadow-emerald-300/40">
+            <svg class="w-6 h-6 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22c-1.5 0-2.5-1-2.5-2.5S10.5 17 12 17s2.5 1 2.5 2.5S13.5 22 12 22z"/>
+              <path d="M9.5 17.5L5 4l4.5 2L12 2l2.5 4L19 4l-4.5 13.5"/>
+              <line x1="7.2" y1="10.5" x2="16.8" y2="10.5"/>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-lg tracking-tight text-white leading-none">SmashCourt<span class="text-emerald-400">Pro</span></span>
+              <span id="role-mode-badge" class="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">Khách đặt sân</span>
+              <span id="supabase-status-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[10px] font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span><span>Realtime Cloud</span></span>
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Bản PC</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-1 truncate flex items-center gap-1.5">
+              <span>📍 11 Lê Khôi</span>
+              <span class="text-slate-500">•</span>
+              <span>2 Sân thảm xanh, 2 Sân thảm xám chuẩn BWF</span>
+              <span class="text-slate-500">•</span>
+              <span class="text-emerald-400 font-semibold">📞 Hotline: 0988.412.889</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Controls -->
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="hidden xl:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
+            <span id="live-clock-display" class="font-mono text-slate-200 font-medium">14:22:00 - T6, 16/10/2026</span>
+          </div>
+
+          <!-- Button shown when NOT logged in as Admin -->
+          <button type="button" id="btn-open-admin-login" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 transition shadow-md">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <span>Đăng Nhập Quản Lý (Admin)</span>
+          </button>
+
+          <!-- Controls shown ONLY when logged in as Admin -->
+          <div id="admin-header-controls" class="hidden flex items-center gap-2">
+            <button type="button" id="btn-toggle-customer-preview" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition">
+              Giao diện Khách
+            </button>
+            
+            <button type="button" id="btn-admin-logout" class="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-semibold transition">
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Primary Admin Navigation Tabs -->
+      <div id="admin-nav-bar" class="hidden pb-3 pt-1 border-t border-slate-800/80">
+        <nav class="flex items-center gap-2 bg-slate-800/90 p-1.5 rounded-xl border border-slate-700/70 overflow-x-auto max-w-full custom-scrollbar" aria-label="Điều hướng chính">
+          <button type="button" data-nav="courts" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-emerald-500 text-slate-950 shadow-sm whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            <span>Sơ đồ 4 Sân</span>
+            <span id="badge-active-courts" class="px-2 py-0.5 text-[11px] rounded-full bg-slate-950/20 font-bold">4/8</span>
+          </button>
+          <button type="button" data-nav="pos" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+            <span>Bán Hàng POS Tại Quầy</span>
+            <span id="badge-pos-cart" class="hidden px-2 py-0.5 text-[11px] rounded-full bg-amber-400 text-slate-950 font-bold">0</span>
+          </button>
+          <button type="button" data-nav="schedule" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Lịch Đặt Sân Toàn Hệ Thống</span>
+          </button>
+          <button type="button" data-nav="inventory" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <span>Kho & Hàng Hóa</span>
+            <span id="badge-low-stock" class="px-2 py-0.5 text-[11px] rounded-full bg-rose-500/90 text-white font-bold">2</span>
+          </button>
+          <button type="button" data-nav="reports" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/60 whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Báo Cáo Doanh Thu & Hóa Đơn</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+  
+
+  <section id="customer-portal" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Top Segmented Switch -->
+    <div class="bg-white p-2 rounded-2xl shadow-xs border border-slate-200 max-w-md mx-auto grid grid-cols-2 gap-2">
+      <button type="button" data-cust-tab="book" class="cust-tab-btn py-2.5 px-4 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-xs transition">
+        <span>🏸 Đặt Lịch Sân Trực Tuyến</span>
+      </button>
+      <button type="button" data-cust-tab="shop" class="cust-tab-btn py-2.5 px-4 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-100 transition">
+        <span>🥤 Mua Nước & Phụ Kiện</span>
+        <span id="cust-shop-badge" class="hidden px-2 py-0.5 rounded-full text-xs bg-amber-400 text-slate-950 font-extrabold">0</span>
+      </button>
+    </div>
+
+    <!-- TAB KHÁCH 1: ĐẶT LỊCH SÂN (PC 2-COLUMN WIDESCREEN LAYOUT) -->
+    <div id="cust-view-book" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- LEFT COLUMN: Sơ đồ ma trận & Bảng giá & Lịch sử đặt (8/12 cols) -->
+      <div class="lg:col-span-8 space-y-5">
+        <!-- Club Intro Card -->
+        <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-800 text-white p-4 sm:p-5 rounded-2xl shadow-sm space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h1 class="text-base sm:text-lg font-black tracking-tight">🏸 Đặt Sân Cầu Lông SmashCourt Pro</h1>
+              <p class="text-xs text-emerald-100 mt-0.5">Sân thảm tiêu chuẩn BWF • Đèn LED chống lóa • Nhấp chọn khung giờ trực tiếp trên bảng ma trận bên dưới</p>
+            </div>
+            <span id="cust-club-date-badge" class="text-xs font-bold bg-white/20 px-3 py-1.5 rounded-xl border border-white/20 whitespace-nowrap">Hôm nay</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-xs pt-1">
+            <div class="bg-slate-950/25 px-4 py-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+              <span class="text-emerald-100 font-medium">Giờ thường (05:00 - 17:00 & 21:00 - 23:00)</span>
+              <strong class="text-white font-black text-sm">60.000đ / h</strong>
+            </div>
+            <div class="bg-amber-400/25 px-4 py-2.5 rounded-xl border border-amber-300/30 flex items-center justify-between">
+              <span class="text-amber-100 font-medium">Giờ vàng cao điểm (17:00 - 21:00)</span>
+              <strong class="text-amber-300 font-black text-sm">80.000đ / h</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- ALOBO-STYLE INTERACTIVE COURT X TIME MATRIX -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-4">
+          <!-- Section Header: Title & Quick Day Switcher -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-sm font-black uppercase tracking-wider text-slate-900">Bảng Giờ & Ma Trận Đặt Lịch Sân</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Bấm trực tiếp vào các ô màu trắng để chọn giờ (có thể chọn nhiều khung giờ liên tiếp)</p>
+            </div>
+            <!-- Quick Day Switcher Pills -->
+            <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar">
+              <button type="button" data-cust-day="today" class="cust-day-btn px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 text-white shadow-xs whitespace-nowrap">Hôm nay</button>
+              <button type="button" data-cust-day="tomorrow" class="cust-day-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">Ngày mai</button>
+              <button type="button" data-cust-day="sunday" class="cust-day-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">Chủ nhật</button>
+            </div>
+          </div>
+
+          <!-- Matrix Grid Table -->
+          <div id="cust-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar rounded-xl border border-[#c4ded7] shadow-xs relative bg-white">
+            <table class="w-full text-left border-collapse min-w-[1880px]">
+              <thead class="bg-[#c0ebfb] text-[#0e362e] border-b border-[#cadfe8]">
+                <tr id="cust-alobo-matrix-header" class="bg-[#c0ebfb] text-[#0e362e] h-11">
+                  <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0"></th>
+                </tr>
+              </thead>
+              <tbody id="cust-alobo-matrix-body" class="text-xs bg-white"></tbody>
+            </table>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+            <div class="flex items-center gap-4 flex-wrap">
+              <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-white border border-slate-300"></span> Còn trống</span>
+              <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-600"></span> Đang chọn</span>
+              <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-slate-100 border border-slate-200 text-slate-400 text-center font-bold text-[10px] leading-3.5">🔒</span> Đã khóa / Đã đặt</span>
+            </div>
+            <span class="text-[11px] text-slate-400">Cuộn ngang bảng để xem từ 05:00 đến 23:00</span>
+          </div>
+
+          <!-- Quick Time Jump Bar & Scroll Navigation -->
+          <div class="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 flex-wrap text-xs">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px] font-bold text-slate-500">⚡ Xem nhanh:</span>
+              <button type="button" data-matrix-jump="05:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌅 Sáng (5h)</button>
+              <button type="button" data-matrix-jump="12:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">☀️ Trưa (12h)</button>
+              <button type="button" data-matrix-jump="17:00" class="matrix-jump-btn px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌙 Tối vàng (17h)</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400 hidden sm:inline">🖱️ Lăn chuột / kéo rê để lướt</span>
+              <div class="flex items-center gap-1">
+                <button type="button" id="btn-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
+                <button type="button" id="btn-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden validator elements (Kept intact so JS never breaks) -->
+        <div class="hidden">
+          <span id="cust-selected-slot-rate">80.000đ / giờ</span>
+          <select id="cust-start-time"></select>
+          <select id="cust-end-time"></select>
+          <div id="cust-slot-grid"></div>
+          <div id="cust-time-breakdown-box">
+            <span id="cust-time-summary-label"></span>
+            <span id="cust-time-fee-label"></span>
+          </div>
+          <span id="cust-free-count-hint"></span>
+          <div id="cust-court-picker"></div>
+        </div>
+
+        <!-- Recent Customer Bookings Ticket List -->
+        <div id="cust-my-bookings-box" class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-black uppercase tracking-wider text-slate-900">Lịch Sân Đã Đặt Gần Đây</span>
+              <p class="text-xs text-slate-500 mt-0.5">Danh sách phiếu đặt của bạn được lưu tự động trên trình duyệt</p>
+            </div>
+            <span class="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Đã đồng bộ với Lễ tân</span>
+          </div>
+          <div id="cust-my-bookings-list" class="space-y-2.5"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Sticky Booking Form Sidebar (4/12 cols) -->
+      <div class="lg:col-span-4 sticky top-24 space-y-4">
+        <form id="form-customer-booking" class="bg-white p-5 rounded-2xl shadow-md border border-slate-200/90 space-y-4">
+          <div class="border-b border-slate-100 pb-3">
+            <h3 class="text-sm font-black uppercase tracking-wider text-slate-900">Phiếu Xác Nhận Đặt Sân</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Chọn giờ trên bảng bên trái rồi điền thông tin bên dưới</p>
+          </div>
+
+          <!-- Live Selected Court & Time Summary Card directly linked to Drag Matrix -->
+          <div id="cust-selected-summary-card" class="transition-all"></div>
+
+          <div class="space-y-3 pt-1">
+            <div>
+              <label for="cust-book-name" class="block text-xs font-bold text-slate-700 mb-1">Họ tên của bạn / Tên nhóm *</label>
+              <input type="text" id="cust-book-name" required placeholder="VD: Anh Minh, Nhóm Bách Khoa..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label for="cust-book-phone" class="block text-xs font-bold text-slate-700 mb-1">Số điện thoại liên hệ *</label>
+              <input type="tel" id="cust-book-phone" required placeholder="VD: 0988.123.456" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-bold text-slate-700">Dịch vụ chuẩn bị sẵn tại sân:</label>
+              <button type="button" id="btn-open-addon-picker" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1 transition cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                <span>Menu Nước / Cầu</span>
+              </button>
+            </div>
+            <!-- Quick Addon Items with Quantity Stepper (+/-) -->
+            <div id="cust-addons-grid" class="grid grid-cols-1 gap-2 text-xs"></div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-200 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span id="cust-book-total-label" class="text-xs font-medium text-slate-500">Tổng tạm tính:</span>
+              <p id="cust-book-total-preview" class="text-xl font-black text-emerald-600">0đ</p>
+            </div>
+            <button type="submit" id="btn-cust-submit-booking" class="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-md transition transform active:scale-[0.98]">
+              Xác Nhận Đặt Sân Ngay
+            </button>
+            <p class="text-[11px] text-center text-slate-400">Giữ sân miễn phí trong 15 phút • Thanh toán tại quầy khi đến</p>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB KHÁCH 2: MUA NƯỚC UỐNG, QUẤN CÁN, CẦU LÔNG (PC 2-COLUMN WIDESCREEN) -->
+    <div id="cust-view-shop" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- LEFT COLUMN: Categories & Product Catalog (8/12 cols) -->
+      <div class="lg:col-span-8 space-y-4">
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-black text-slate-900">Menu Nước Uống, Quấn Cán & Cầu Lông</h2>
+              <p class="text-xs text-slate-500">Chọn món để nhân viên mang ra tận sân của bạn hoặc chuẩn bị nhận tại quầy lễ tân</p>
+            </div>
+          </div>
+          <!-- Category Pills -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            <button type="button" data-cust-cat="all" class="cust-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white whitespace-nowrap shadow-xs">Tất cả sản phẩm</button>
+            <button type="button" data-cust-cat="drink" class="cust-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">🥤 Nước giải khát</button>
+            <button type="button" data-cust-cat="grip" class="cust-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">🎾 Quấn cán & Phụ kiện</button>
+            <button type="button" data-cust-cat="shuttle" class="cust-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">🏸 Cầu lông</button>
+            <button type="button" data-cust-cat="rental" class="cust-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">👟 Thuê vợt / Giày</button>
+          </div>
+        </div>
+
+        <!-- 4-column Product Grid on PC -->
+        <div id="cust-shop-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5"></div>
+      </div>
+
+      <!-- RIGHT COLUMN: Sticky Cart Drawer (4/12 cols) -->
+      <div class="lg:col-span-4 sticky top-24">
+        <div id="cust-cart-drawer" class="bg-white p-5 rounded-2xl shadow-md border-2 border-emerald-500 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-sm font-black text-slate-900">Giỏ Hàng Của Bạn</h3>
+              <p id="cust-cart-summary-text" class="text-xs text-slate-500">Chưa có món nào được chọn</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="cust-cart-total-amount" class="text-lg font-black text-emerald-600">0đ</span>
+              <button type="button" id="btn-clear-cust-cart" class="text-[11px] text-slate-400 hover:text-rose-500 hover:underline cursor-pointer" title="Làm trống giỏ hàng">Làm trống</button>
+            </div>
+          </div>
+
+          <div id="cust-cart-items-list" class="divide-y divide-slate-100 max-h-60 overflow-y-auto custom-scrollbar text-xs"></div>
+
+          <div class="space-y-3 pt-2">
+            <div>
+              <label for="cust-order-delivery" class="block text-xs font-bold text-slate-700 mb-1">Vị trí giao nhận hàng:</label>
+              <select id="cust-order-delivery" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold bg-slate-50">
+                <option value="retail">Nhận trực tiếp tại Quầy lễ tân</option>
+                <option value="1">Mang ra Sân 1 - Sân thảm xanh</option>
+                <option value="2">Mang ra Sân 2 - Sân thảm xanh</option>
+                <option value="3">Mang ra Sân 3 - Sân thảm xám</option>
+                <option value="4">Mang ra Sân 4 - Sân thảm xám</option>
+              </select>
+            </div>
+            <div>
+              <label for="cust-order-note" class="block text-xs font-bold text-slate-700 mb-1">Tên khách / Ghi chú (nếu có):</label>
+              <input type="text" id="cust-order-note" placeholder="VD: Lấy nước ướp lạnh, quấn cán màu đen..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs" />
+            </div>
+          </div>
+
+          <button type="button" id="btn-cust-submit-order" class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-md transition transform active:scale-[0.98]">
+            Gửi Đơn Mua Nước & Phụ Kiện
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+<div id="admin-workspace" class="hidden flex-1 flex flex-col">
+<label class="block px-4 pt-4 font-bold text-sm" for="admin-schedule-date">Ngày xem lịch quản trị</label><input class="mx-4 border rounded px-3 py-2" id="admin-schedule-date" type="date" />
+<section id="pending-orders" class="p-4" aria-label="Đơn hàng chờ xác nhận"></section>
+  <!-- TOP KPI SHORTCUT BAR (GỌN ĐẸP, CÓ THỂ ẨN/HIỆN & BẤM ĐỂ NHẢY TỚI MỤC LIÊN QUAN) -->
+  <section class="bg-white border-b border-slate-200 shadow-xs">
+    <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2">
+      <!-- Slim Header Bar to Toggle Quick Shortcuts -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 text-xs text-slate-600">
+          <span class="font-bold text-slate-800">⚡ Lối tắt quản lý nhanh</span>
+          <span class="hidden sm:inline text-slate-400">• Bấm vào từng ô để mở nhanh mục tương ứng</span>
+        </div>
+        <button type="button" id="btn-toggle-kpi-strip" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold flex items-center gap-1 transition">
+          <span id="kpi-toggle-label">Thu gọn ▲</span>
+        </button>
+      </div>
+
+      <!-- Compact 4-Shortcut Grid (Stacked vertically inside each card so mobile text NEVER squishes!) -->
+      <div id="kpi-shortcuts-panel" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 pb-1">
+        <!-- Shortcut 1 -> Sơ đồ Sân -->
+        <button type="button" data-nav="courts" class="text-left p-3 rounded-xl bg-emerald-50/80 hover:bg-emerald-100/80 border border-emerald-200 transition flex flex-col justify-between group">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-[11px] font-bold text-emerald-900">Sân đang hoạt động</span>
+            <span class="text-[10px] font-bold text-emerald-700 group-hover:translate-x-0.5 transition">Mở sân →</span>
+          </div>
+          <div class="my-1">
+            <span id="kpi-courts-active" class="text-lg sm:text-xl font-extrabold text-emerald-700">2 / 4 sân</span>
+          </div>
+          <span id="kpi-courts-sub" class="text-[11px] text-emerald-700 font-medium truncate w-full">1 trống • 1 đã đặt</span>
+        </button>
+
+        <!-- Shortcut 2 -> Lịch Đặt Sân -->
+        <button type="button" data-nav="schedule" class="text-left p-3 rounded-xl bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200 transition flex flex-col justify-between group">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-[11px] font-bold text-blue-900">Tạm tính & Lịch đặt</span>
+            <span class="text-[10px] font-bold text-blue-700 group-hover:translate-x-0.5 transition">Xem lịch →</span>
+          </div>
+          <div class="my-1">
+            <span id="kpi-running-unbilled" class="text-lg sm:text-xl font-extrabold text-blue-700">0đ</span>
+          </div>
+          <span class="text-[11px] text-blue-700 font-medium truncate w-full">Đang chơi (sân + nước)</span>
+        </button>
+
+        <!-- Shortcut 3 -> Bán Hàng POS -->
+        <button type="button" data-nav="pos" class="text-left p-3 rounded-xl bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200 transition flex flex-col justify-between group">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-[11px] font-bold text-amber-900">Bán Nước & Phụ kiện</span>
+            <span class="text-[10px] font-bold text-amber-800 group-hover:translate-x-0.5 transition">Mở POS →</span>
+          </div>
+          <div class="my-1">
+            <span id="kpi-pos-revenue" class="text-lg sm:text-xl font-extrabold text-amber-700">0đ</span>
+          </div>
+          <span id="kpi-pos-items-sold" class="text-[11px] text-amber-800 font-medium truncate w-full">0 món đã xuất</span>
+        </button>
+
+        <!-- Shortcut 4 -> Doanh Thu & Hóa Đơn -->
+        <button type="button" data-nav="reports" class="text-left p-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 transition flex flex-col justify-between group">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-[11px] font-bold text-slate-300">Thực thu & Hóa đơn</span>
+            <span class="text-[10px] font-bold text-emerald-400 group-hover:translate-x-0.5 transition">Báo cáo →</span>
+          </div>
+          <div class="my-1">
+            <span id="kpi-total-revenue" class="text-lg sm:text-xl font-extrabold text-emerald-400">0đ</span>
+          </div>
+          <span id="kpi-invoice-count" class="text-[11px] text-slate-400 font-medium truncate w-full">0 hóa đơn đã thu</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN WORKSPACE CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ==================== VIEW 1: SƠ ĐỒ SÂN (LIVE COURTS) ==================== -->
+    <section id="view-courts" class="space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">Sơ Đồ 4 Sân Cầu Lông (2 Sân Thảm Xanh • 2 Sân Thảm Xám)</h1>
+          <p class="text-xs text-slate-500">Bấm vào từng sân để Mở sân, Gọi thêm Nước / Quấn cán / Ống cầu hoặc Thanh toán ra sân</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Status Filter Buttons -->
+          <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+            <button type="button" data-court-filter="all" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-xs transition">Tất cả (8)</button>
+            <button type="button" data-court-filter="active" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Đang chơi</button>
+            <button type="button" data-court-filter="free" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Sân trống</button>
+            <button type="button" data-court-filter="reserved" class="court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Đã đặt</button>
+          </div>
+          <button type="button" id="btn-quick-pos-from-courts" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-xs flex items-center gap-1.5 shadow-xs transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Bán lẻ Nước / Phụ kiện</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pricing Info Banner -->
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs">
+        <div class="flex flex-wrap items-center gap-4">
+          <span class="font-semibold text-emerald-400">Bảng giá sân:</span>
+          <span>• Giờ tối (17:00 – 21:00): <strong class="text-white">80.000đ/giờ</strong></span>
+          <span>• Các khung giờ khác: <strong class="text-white">60.000đ/giờ</strong></span>
+          <span>• Quy mô: <strong class="text-emerald-300">2 Sân thảm xanh (Sân 1, 2) & 2 Sân thảm xám (Sân 3, 4)</strong></span>
+        </div>
+        <span class="text-slate-400">Tự động tính tiền theo số giờ thực tế và gộp hóa đơn nước/quấn cán</span>
+      </div>
+
+      <!-- 8 Courts Grid -->
+      <div id="courts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- ==================== VIEW 2: BÁN HÀNG POS (NƯỚC, QUẤN CÁN, CẦU, THUÊ VỢT) ==================== -->
+    <section id="view-pos" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Left 8 cols: Product Catalog -->
+        <div class="lg:col-span-8 space-y-4">
+          <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-bold text-slate-900">Quầy Dịch Vụ & Phụ Kiện Cầu Lông (POS)</h2>
+                <p class="text-xs text-slate-500">Bấm chọn mặt hàng để thêm vào hóa đơn sân đang chơi hoặc bán lẻ trực tiếp</p>
+              </div>
+              <div class="relative w-full sm:w-64">
+                <input type="text" id="pos-search-input" placeholder="Tìm nước, quấn cán, cầu..." class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+            </div>
+
+            <!-- Category Pills -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+              <button type="button" data-pos-cat="all" class="pos-cat-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 text-white whitespace-nowrap transition">Tất cả mặt hàng</button>
+              <button type="button" data-pos-cat="drink" class="pos-cat-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap transition">🥤 Nước giải khát & Điện giải</button>
+              <button type="button" data-pos-cat="grip" class="pos-cat-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap transition">🎾 Quấn cán & Phụ kiện</button>
+              <button type="button" data-pos-cat="shuttle" class="pos-cat-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap transition">🏸 Ống cầu & Quả cầu lẻ</button>
+              <button type="button" data-pos-cat="rental" class="pos-cat-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap transition">👟 Thuê vợt / Giày / Căng cước</button>
+            </div>
+          </div>
+
+          <!-- Product Cards Grid -->
+          <div id="pos-products-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3"></div>
+        </div>
+
+        <!-- Right 4 cols: Active POS Cart & Target Assignment -->
+        <div class="lg:col-span-4 bg-white rounded-2xl shadow-md border border-slate-200/90 sticky top-20 overflow-hidden">
+          <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-sm">Phiếu Order Dịch Vụ / POS</h3>
+              <p class="text-[11px] text-slate-400">Ghi nợ vào sân đang đánh hoặc thu tiền lẻ</p>
+            </div>
+            <button type="button" id="btn-clear-pos-cart" class="text-xs text-slate-300 hover:text-rose-400 px-2 py-1 rounded bg-slate-800 transition">Xóa giỏ</button>
+          </div>
+
+          <div class="p-4 space-y-4">
+            <!-- Target Selector: Assign to Court vs Walk-in Retail -->
+            <div>
+              <label for="pos-target-select" class="block text-xs font-semibold text-slate-700 mb-1.5">Hình thức tính tiền / Gắn vào sân:</label>
+              <select id="pos-target-select" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="retail">💵 Khách mua lẻ tại quầy (Thanh toán ngay)</option>
+              </select>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="pos-cart-items" class="max-h-72 overflow-y-auto custom-scrollbar divide-y divide-slate-100 border-y border-slate-100 py-2"></div>
+
+            <!-- Summary & Actions -->
+            <div class="space-y-2 pt-1">
+              <div class="flex justify-between text-xs text-slate-500">
+                <span>Tổng số lượng:</span>
+                <span id="pos-cart-count" class="font-semibold text-slate-800">0 món</span>
+              </div>
+              <div class="flex justify-between items-baseline">
+                <span class="text-sm font-bold text-slate-800">Tổng cộng:</span>
+                <span id="pos-cart-total" class="text-xl font-extrabold text-emerald-600">0đ</span>
+              </div>
+            </div>
+
+            <!-- Payment Method (for retail immediate checkout) -->
+            <div id="pos-retail-payment-box" class="space-y-2 pt-1 border-t border-slate-100">
+              <label class="block text-xs font-semibold text-slate-600">Phương thức thanh toán lẻ:</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" data-pos-pay="cash" class="pos-pay-method-btn py-2 px-3 rounded-xl border text-xs font-semibold bg-emerald-50 border-emerald-500 text-emerald-800 transition">💵 Tiền mặt</button>
+                <button type="button" data-pos-pay="transfer" class="pos-pay-method-btn py-2 px-3 rounded-xl border text-xs font-semibold bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition">📱 Chuyển khoản</button>
+              </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="pt-2">
+              <button type="button" id="btn-submit-pos-order" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="btn-submit-pos-label">Thanh Toán Đơn Bán Lẻ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: LỊCH ĐẶT SÂN (SCHEDULE TIMELINE) ==================== -->
+    <section id="view-schedule" class="hidden space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Lịch Đặt Sân Toàn Hệ Thống</h2>
+          <p class="text-xs text-slate-500">Quản lý các ca đặt trước, khách cố định theo tháng và khách vãng lai đặt cọc</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-open-new-booking" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>+ Tạo Lịch Đặt Sân Mới</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Visual Alobo-Style 30-min Admin Court Timeline Grid -->
+      <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-xs border border-slate-200/90 space-y-3 sm:space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5 sm:pb-3">
+          <div>
+            <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+              <span>📅 Ma Trận Lịch Đặt Sân Toàn Hệ Thống (05:00 - 23:00)</span>
+              <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">Hiển thị trực tiếp Tên Khách</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">Nhìn trực tiếp biết ai đặt khung giờ nào • Bấm vào ô trống để đặt nhanh • Bấm vào ô đã đặt để xem / nhận sân</p>
+          </div>
+          <div class="flex items-center gap-3 sm:gap-4 flex-wrap text-[11px] sm:text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-600"></span> Đang đánh</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-amber-400 border border-amber-500"></span> Đã đặt trước</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-white border border-slate-300"></span> Còn trống (Bấm để đặt)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-rose-100 border border-rose-300 text-rose-700 text-[10px] text-center font-bold">🔒</span> Bảo trì</span>
+          </div>
+        </div>
+
+        <!-- Scrollable Matrix Table -->
+        <div id="admin-matrix-scroll-wrapper" class="isolate overflow-x-auto custom-scrollbar rounded-xl border border-[#c4ded7] shadow-xs relative bg-white">
+          <table class="w-full text-left border-collapse min-w-[2160px]">
+            <thead class="bg-[#c0ebfb] text-[#0e362e] border-b border-[#cadfe8]">
+              <tr id="admin-alobo-matrix-header" class="bg-[#c0ebfb] text-[#0e362e] h-11">
+                <th class="w-20 min-w-[76px] sm:w-24 sm:min-w-[90px] sticky left-0 bg-[#c0ebfb] z-20 border-r-2 border-[#a3cdc2] h-11 p-0 text-center font-black text-xs text-[#0e362e] uppercase tracking-wider">SÂN</th>
+              </tr>
+            </thead>
+            <tbody id="admin-alobo-matrix-body" class="text-xs bg-white"></tbody>
+          </table>
+        </div>
+
+        <!-- Fast Time Jump Bar & Scroll Navigation for Admin -->
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[11px] font-bold text-slate-500">⚡ Xem nhanh:</span>
+            <button type="button" data-admin-matrix-jump="05:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌅 Sáng (5h)</button>
+            <button type="button" data-admin-matrix-jump="12:00" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">☀️ Trưa (12h)</button>
+            <button type="button" data-admin-matrix-jump="17:00" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">🌙 Tối vàng (17h)</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-slate-400 hidden sm:inline">🖱️ Lăn chuột / kéo rê để lướt</span>
+            <div class="flex items-center gap-1">
+              <button type="button" id="btn-admin-matrix-scroll-left" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang trái">◀</button>
+              <button type="button" id="btn-admin-matrix-scroll-right" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs transition shadow-xs cursor-pointer" title="Lướt sang phải">▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bookings List Table -->
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="font-bold text-sm text-slate-900">Danh Sách Phiếu Đặt Sân</h3>
+          <span id="booking-count-label" class="text-xs text-slate-500 font-medium">0 lịch đặt</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
+                <th class="py-3 px-4">Khách hàng / CLB</th>
+                <th class="py-3 px-4">Số điện thoại</th>
+                <th class="py-3 px-4">Sân</th>
+                <th class="py-3 px-4">Khung giờ</th>
+                <th class="py-3 px-4">Loại khách</th>
+                <th class="py-3 px-4 text-right">Tiền cọc</th>
+                <th class="py-3 px-4">Trạng thái</th>
+                <th class="py-3 px-4 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-table-body" class="divide-y divide-slate-100 text-xs"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 4: QUẢN LÝ KHO & HÀNG HÓA (INVENTORY) ==================== -->
+    <section id="view-inventory" class="hidden space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Quản Lý Kho Nước, Quấn Cán, Ống Cầu & Dịch Vụ</h2>
+          <p class="text-xs text-slate-500">Theo dõi số lượng tồn kho, giá vốn, giá bán lẻ và nhập thêm hàng nhanh</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-open-new-product" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>+ Thêm Mặt Hàng Mới</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
+                <th class="py-3.5 px-4">Mã / Tên mặt hàng</th>
+                <th class="py-3.5 px-4">Danh mục</th>
+                <th class="py-3.5 px-4">Đơn vị</th>
+                <th class="py-3.5 px-4 text-right">Giá vốn</th>
+                <th class="py-3.5 px-4 text-right">Giá bán</th>
+                <th class="py-3.5 px-4 text-right">Lãi gộp/ĐV</th>
+                <th class="py-3.5 px-4 text-center">Tồn kho</th>
+                <th class="py-3.5 px-4 text-center">Đã bán hôm nay</th>
+                <th class="py-3.5 px-4 text-right">Nhập kho nhanh</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-slate-100 text-xs"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 5: BÁO CÁO DOANH THU & HÓA ĐƠN (REPORTS) ==================== -->
+    <section id="view-reports" class="hidden space-y-6">
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-8 bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-sm text-slate-900">Biểu Đồ Doanh Thu 7 Ngày Gần Nhất (VNĐ)</h3>
+              <p class="text-xs text-slate-500">So sánh tỷ trọng Tiền thuê sân cầu lông và Doanh thu POS (Nước, Quấn cán, Cầu)</p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">Cập nhật: Hôm nay</span>
+          </div>
+          <div class="relative h-72 w-full">
+            <canvas id="chart-weekly-revenue"></canvas>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
+          <div class="mb-4">
+            <h3 class="font-bold text-sm text-slate-900">Cơ Cấu Doanh Thu Hôm Nay</h3>
+            <p class="text-xs text-slate-500">Phân bổ theo từng nhóm dịch vụ</p>
+          </div>
+          <div class="relative h-64 w-full">
+            <canvas id="chart-category-share"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invoices History Table -->
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">Lịch Sử Hóa Đơn & Phiếu Thu Hôm Nay</h3>
+            <p class="text-xs text-slate-500">Bấm "Xem phiếu" để kiểm tra chi tiết từng món nước, quấn cán và giờ sân</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" data-inv-filter="all" class="inv-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white">Tất cả</button>
+            <button type="button" data-inv-filter="court" class="inv-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Thu tiền Sân + POS</button>
+            <button type="button" data-inv-filter="retail" class="inv-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Bán lẻ tại quầy</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
+                <th class="py-3 px-4">Mã HĐ</th>
+                <th class="py-3 px-4">Thời gian</th>
+                <th class="py-3 px-4">Loại giao dịch</th>
+                <th class="py-3 px-4">Khách hàng</th>
+                <th class="py-3 px-4 text-right">Tiền sân</th>
+                <th class="py-3 px-4 text-right">Tiền Nước/Phụ kiện</th>
+                <th class="py-3 px-4 text-right">Tổng thanh toán</th>
+                <th class="py-3 px-4">Hình thức</th>
+                <th class="py-3 px-4 text-right">Chi tiết</th>
+              </tr>
+            </thead>
+            <tbody id="invoices-table-body" class="divide-y divide-slate-100 text-xs"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  </div>
+
+    <!-- ==================== MODAL: CHỌN THÊM NƯỚC & PHỤ KIỆN KHI ĐẶT SÂN ==================== -->
+  
+<div role="dialog" aria-modal="true" tabindex="-1" id="modal-cust-addon-picker" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-sm sm:text-base flex items-center gap-2">
+            <span>🥤 Menu Nước & Phụ Kiện Chuẩn Bị Sẵn</span>
+          </h3>
+          <p class="text-[11px] text-slate-400">Chọn đồ để nhân viên mang sẵn ra sân cho bạn</p>
+        </div>
+        <button type="button" data-close-modal="modal-cust-addon-picker" class="text-slate-400 hover:text-white p-1 text-sm font-bold">✕</button>
+      </div>
+
+      <!-- Search & Category Filters -->
+      <div class="p-3 border-b border-slate-100 space-y-2 bg-slate-50">
+        <input type="text" id="cust-addon-search-input" placeholder="Tìm kiếm nước, quấn cán, cầu..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <div class="flex items-center gap-1 overflow-x-auto pb-0.5 custom-scrollbar text-[11px]">
+          <button type="button" data-addon-cat="all" class="addon-cat-btn px-2.5 py-1 rounded-lg font-bold bg-slate-900 text-white whitespace-nowrap">Tất cả</button>
+          <button type="button" data-addon-cat="drink" class="addon-cat-btn px-2.5 py-1 rounded-lg font-bold bg-white text-slate-700 border border-slate-200 whitespace-nowrap">🥤 Nước</button>
+          <button type="button" data-addon-cat="shuttle" class="addon-cat-btn px-2.5 py-1 rounded-lg font-bold bg-white text-slate-700 border border-slate-200 whitespace-nowrap">🏸 Cầu lông</button>
+          <button type="button" data-addon-cat="grip" class="addon-cat-btn px-2.5 py-1 rounded-lg font-bold bg-white text-slate-700 border border-slate-200 whitespace-nowrap">🎾 Quấn cán</button>
+          <button type="button" data-addon-cat="rental" class="addon-cat-btn px-2.5 py-1 rounded-lg font-bold bg-white text-slate-700 border border-slate-200 whitespace-nowrap">👟 Thuê đồ</button>
+        </div>
+      </div>
+
+      <!-- Products List in Modal -->
+      <div role="dialog" aria-modal="true" tabindex="-1" id="modal-addon-products-list" class="p-3 overflow-y-auto custom-scrollbar divide-y divide-slate-100 flex-1 space-y-1"></div>
+
+      <!-- Modal Footer -->
+      <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+        <div>
+          <span class="text-[11px] text-slate-500 block">Tạm tính phụ kiện:</span>
+          <span id="modal-addon-total-fee" class="text-sm font-extrabold text-emerald-700">0đ</span>
+        </div>
+        <button type="button" data-close-modal="modal-cust-addon-picker" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition">
+          Xác Nhận Xong
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- Đăng nhập quản lý bằng Supabase Auth -->
+  <div role="dialog" aria-modal="true" tabindex="-1" id="modal-admin-login" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-extrabold text-xs">🔐</span>
+          <h3 class="font-bold text-sm">Đăng Nhập Quản Lý Sân</h3>
+        </div>
+        <button type="button" data-close-modal="modal-admin-login" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <form id="form-admin-login" class="p-5 space-y-4">
+        <p class="text-xs text-slate-600">Đăng nhập bằng email quản trị đã được cấp quyền.</p>
+        <div>
+          <label for="admin-username-input" class="block text-xs font-semibold text-slate-700 mb-1">Tài khoản</label>
+          <input type="email" autocomplete="username" id="admin-username-input" required placeholder="quanly@example.com" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div>
+          <label for="admin-password-input" class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu</label>
+          <input type="password" id="admin-password-input" required autocomplete="current-password" placeholder="Nhập mật khẩu" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <p id="admin-login-error" class="hidden text-xs font-semibold text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+          Không đăng nhập được hoặc tài khoản chưa được cấp quyền quản trị.
+        </p>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" data-close-modal="modal-admin-login" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Đóng</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm">Đăng Nhập Quản Lý</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 1: MỞ SÂN / CHECK-IN SÂN ==================== -->
+  <div role="dialog" aria-modal="true" tabindex="-1" id="modal-checkin" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <h3 id="modal-checkin-title" class="font-bold text-base">Mở Sân Cầu Lông</h3>
+        <button type="button" data-close-modal="modal-checkin" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <form id="form-checkin-court" class="p-5 space-y-4">
+        <input type="hidden" id="checkin-court-id" />
+        <div>
+          <label for="checkin-customer-name" class="block text-xs font-semibold text-slate-700 mb-1">Tên khách hàng / Nhóm chơi</label>
+          <input type="text" id="checkin-customer-name" required placeholder="VD: Nhóm Anh Minh, CLB Cầu Lông..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="checkin-customer-type" class="block text-xs font-semibold text-slate-700 mb-1">Khung giá áp dụng</label>
+            <select id="checkin-customer-type" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+              <option value="peak">Giờ tối 17h–21h (80.000đ/h)</option>
+              <option value="normal" selected>Giờ khác ngoài 17h–21h (60.000đ/h)</option>
+            </select>
+          </div>
+          <div>
+            <label for="checkin-duration" class="block text-xs font-semibold text-slate-700 mb-1">Số giờ chơi (Tùy chọn)</label>
+            <input type="number" id="checkin-duration" step="0.5" min="0.5" max="8" value="1.5" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold bg-white" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Gọi sẵn Nước / Cầu / Quấn cán mang ra sân (Tùy chọn):</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" id="checkin-quick-shuttle" class="rounded text-emerald-600" />
+              <span>+1 Ống cầu Thành Công 77 (340k)</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="checkbox" id="checkin-quick-revive" class="rounded text-emerald-600" />
+              <span>+4 Chai Revive (48k)</span>
+            </label>
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" data-close-modal="modal-checkin" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">Hủy</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm">Bắt Đầu Tính Giờ Sân</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: CHI TIẾT SÂN & THANH TOÁN (COURT CHECKOUT & BILLING) ==================== -->
+  <div role="dialog" aria-modal="true" tabindex="-1" id="modal-checkout" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h3 id="checkout-modal-title" class="font-bold text-base">Thanh Toán & Chi Tiết Sân</h3>
+          <p id="checkout-modal-subtitle" class="text-xs text-slate-400"></p>
+        </div>
+        <button type="button" data-close-modal="modal-checkout" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scrollbar space-y-5 flex-1">
+        <!-- Court Time Adjustment Box -->
+        <div class="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-[11px] font-bold uppercase text-emerald-800 tracking-wider">1. Tiền thuê sân cầu lông</span>
+            <p id="checkout-rate-info" class="text-xs text-slate-600 mt-0.5"></p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+              <label for="checkout-hours-input" class="text-xs font-semibold text-slate-700">Số giờ tính tiền:</label>
+              <input type="number" id="checkout-hours-input" step="0.5" min="0.5" max="10" class="w-20 px-2.5 py-1.5 rounded-lg border border-emerald-300 text-sm font-bold text-center bg-white" />
+            </div>
+            <span id="checkout-court-subtotal" class="text-base font-extrabold text-emerald-700 min-w-[90px] text-right">0đ</span>
+          </div>
+        </div>
+
+        <!-- POS Items attached to Court -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold uppercase text-slate-700 tracking-wider">2. Nước uống, Quấn cán, Cầu lông & Phụ kiện đã gọi</span>
+            <button type="button" id="btn-checkout-go-pos" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+              <span>+ Chọn thêm từ menu lớn</span>
+            </button>
+          </div>
+
+          <!-- Quick Add Bar inside Modal -->
+          <div class="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span class="text-[11px] text-slate-500 font-medium w-full mb-0.5">Thêm nhanh vào sân:</span>
+            <button type="button" data-quick-add="p1" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ Revive (12k)</button>
+            <button type="button" data-quick-add="p3" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ Aquafina (10k)</button>
+            <button type="button" data-quick-add="p4" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ RedBull (20k)</button>
+            <button type="button" data-quick-add="p6" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ Quấn cán VS (20k)</button>
+            <button type="button" data-quick-add="p7" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ Quấn Yonex (35k)</button>
+            <button type="button" data-quick-add="p11" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ Ống Thành Công 77 (340k)</button>
+            <button type="button" data-quick-add="p10" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ Cầu lẻ Thành Công (30k)</button>
+            <button type="button" data-quick-add="p12" class="quick-court-item-btn px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-xs font-medium text-slate-700 transition">+ Thuê vợt (30k)</button>
+          </div>
+
+          <div id="checkout-items-list" class="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-48 overflow-y-auto custom-scrollbar"></div>
+        </div>
+
+        <!-- Discount & Payment Method -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+          <div class="space-y-2">
+            <label for="checkout-discount-input" class="block text-xs font-semibold text-slate-700">Giảm giá (VNĐ), không gồm tiền cọc:</label>
+            <input type="number" id="checkout-discount-input" step="5000" min="0" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold" />
+            <label class="block text-xs font-semibold text-slate-700 pt-1">Phương thức thanh toán:</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-checkout-pay="cash" class="checkout-pay-btn py-2 px-3 rounded-xl border text-xs font-semibold bg-emerald-50 border-emerald-500 text-emerald-800">💵 Tiền mặt</button>
+              <button type="button" data-checkout-pay="transfer" class="checkout-pay-btn py-2 px-3 rounded-xl border text-xs font-semibold bg-white border-slate-200 text-slate-600">📱 Chuyển khoản</button>
+            </div>
+          </div>
+
+          <!-- Total Breakdown Card -->
+          <div class="bg-slate-900 text-white p-4 rounded-xl flex flex-col justify-between space-y-2">
+            <div class="space-y-1 text-xs">
+              <div class="flex justify-between text-slate-300">
+                <span>Tiền thuê sân:</span>
+                <span id="summary-court-fee" class="font-semibold text-white">0đ</span>
+              </div>
+              <div class="flex justify-between text-slate-300">
+                <span>Tiền nước & phụ kiện:</span>
+                <span id="summary-pos-fee" class="font-semibold text-amber-300">0đ</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>Giảm giá + cọc đã nhận:</span>
+                <span id="summary-discount-fee">-0đ</span>
+              </div>
+            </div>
+            <p id="summary-refund" class="text-amber-300 text-xs" role="status"></p><div class="pt-2 border-t border-slate-700 flex justify-between items-baseline">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Cần thanh toán:</span>
+              <span id="summary-grand-total" class="text-2xl font-extrabold text-emerald-400">0đ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+        <button type="button" data-close-modal="modal-checkout" class="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100">Đóng (Tiếp tục chơi)</button>
+        <button type="button" id="btn-confirm-court-checkout" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-2 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Hoàn Tất Thu / Hoàn Tiền & Trả Sân</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: ĐẶT LỊCH SÂN MỚI ==================== -->
+  <div role="dialog" aria-modal="true" tabindex="-1" id="modal-booking" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <h3 class="font-bold text-base">Tạo Phiếu Đặt Sân Trước</h3>
+        <button type="button" data-close-modal="modal-booking" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <form id="form-new-booking" class="p-5 space-y-3.5">
+<label for="booking-date">Ngày đặt sân</label><input type="date" id="booking-date" required class="w-full border rounded-xl px-3 py-2" />
+        <div>
+          <label for="booking-customer" class="block text-xs font-semibold text-slate-700 mb-1">Tên khách hàng / Đội cầu lông</label>
+          <input type="text" id="booking-customer" required placeholder="VD: Anh Hoàng - Ngân hàng Vietcombank" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="booking-phone" class="block text-xs font-semibold text-slate-700 mb-1">Số điện thoại</label>
+            <input type="text" id="booking-phone" required placeholder="0988xxxxxx" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label for="booking-court" class="block text-xs font-semibold text-slate-700 mb-1">Chọn sân (4 sân)</label>
+            <select id="booking-court" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+              <option value="1">Sân 1 (Sân thảm xanh)</option>
+              <option value="2">Sân 2 (Sân thảm xanh)</option>
+              <option value="3">Sân 3 (Sân thảm xám)</option>
+              <option value="4">Sân 4 (Sân thảm xám)</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="booking-slot" class="block text-xs font-semibold text-slate-700 mb-1">Khung giờ tùy chọn (VD: 17:30 - 19:00)</label>
+            <input type="text" id="booking-slot" required  placeholder="VD: 17:30 - 19:00" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white" />
+          </div>
+          <div>
+            <label for="booking-type" class="block text-xs font-semibold text-slate-700 mb-1">Loại lịch</label>
+            <select id="booking-type" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+              <option value="Khách vãng lai">Khách vãng lai</option>
+              <option value="Cố định tháng">Cố định tháng</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="booking-deposit" class="block text-xs font-semibold text-slate-700 mb-1">Tiền đặt cọc trước (VNĐ)</label>
+          <input type="number" id="booking-deposit" step="10000" min="0" value="0" placeholder="0" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" data-close-modal="modal-booking" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Lưu Lịch Đặt Sân</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 4: THÊM MẶT HÀNG KHO MỚI ==================== -->
+  <div role="dialog" aria-modal="true" tabindex="-1" id="modal-product" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <h3 class="font-bold text-base">Thêm Mặt Hàng Kinh Doanh Mới</h3>
+        <button type="button" data-close-modal="modal-product" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <form id="form-new-product" class="p-5 space-y-3.5">
+        <div>
+          <label for="prod-name" class="block text-xs font-semibold text-slate-700 mb-1">Tên sản phẩm / Dịch vụ</label>
+          <input type="text" id="prod-name" required placeholder="VD: Nước tăng lực Sting Dâu, Cước Yonex BG65..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="prod-category" class="block text-xs font-semibold text-slate-700 mb-1">Danh mục</label>
+            <select id="prod-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+              <option value="drink">Nước giải khát</option>
+              <option value="grip">Quấn cán & Phụ kiện</option>
+              <option value="shuttle">Quả cầu lông</option>
+              <option value="rental">Thuê dụng cụ / Dịch vụ</option>
+            </select>
+          </div>
+          <div>
+            <label for="prod-unit" class="block text-xs font-semibold text-slate-700 mb-1">Đơn vị tính</label>
+            <input type="text" id="prod-unit" required placeholder="Chai, Cái, Ống..." placeholder="Chai, Cái, Ống, Lượt..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label for="prod-cost" class="block text-xs font-semibold text-slate-700 mb-1">Giá vốn (đ)</label>
+            <input type="number" id="prod-cost" required step="1000" min="0" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label for="prod-price" class="block text-xs font-semibold text-slate-700 mb-1">Giá bán (đ)</label>
+            <input type="number" id="prod-price" required step="1000" min="0" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-emerald-700" />
+          </div>
+          <div>
+            <label for="prod-stock" class="block text-xs font-semibold text-slate-700 mb-1">Tồn ban đầu</label>
+            <input type="number" id="prod-stock" required min="0" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" data-close-modal="modal-product" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">Thêm Vào Menu POS</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 5: XEM PHIẾU THU / HÓA ĐƠN CHI TIẾT ==================== -->
+  <div role="dialog" aria-modal="true" tabindex="-1" id="modal-invoice-detail" class="fixed inset-0 z-50 hidden bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h3 id="inv-detail-title" class="font-bold text-sm">Phiếu Thu Dịch Vụ</h3>
+          <p id="inv-detail-time" class="text-[11px] text-slate-400"></p>
+        </div>
+        <button type="button" data-close-modal="modal-invoice-detail" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div id="inv-detail-body" class="p-5 space-y-3 text-xs"></div>
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button type="button" data-close-modal="modal-invoice-detail" class="px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">Đóng phiếu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  
+<!-- APP_SCRIPT -->
+</body>
+</html>

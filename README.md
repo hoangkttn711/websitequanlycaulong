@@ -1,56 +1,31 @@
-# 🏸 SmashCourt Pro — Hệ Thống Quản Lý Sân Cầu Lông & Đặt Sân Trực Tuyến
+# SmashCourt Pro — Quản lý sân cầu lông
 
-Hệ thống web toàn diện phục vụ quản lý doanh thu, vận hành sân cầu lông, bán hàng POS dịch vụ tại quầy và cổng đặt lịch sân trực tuyến cho khách hàng.
+Ứng dụng đặt sân và vận hành bốn sân, POS, tồn kho và báo cáo. Dùng HTML/JavaScript, Supabase Auth và các giao dịch PostgreSQL để xác nhận lịch, đơn hàng và thanh toán.
 
----
+## Chạy tại máy
 
-## 🌟 Điểm nổi bật & Tính năng chính
+Cài Node.js 22 trở lên, sau đó:
 
-### 1. Phân hệ Khách hàng (Customer Portal)
-- **Bảng đặt lịch ma trận chuẩn Alobo**: Nhấp chọn trực tiếp khung giờ từ 05:00 đến 23:00, hỗ trợ chọn nhiều khung giờ liên tiếp.
-- **Bảo mật thông tin khách hàng**: Các khung giờ đã có người đặt hiển thị `🔒 Đã đặt`, ẩn danh hoàn toàn thông tin cá nhân.
-- **Menu nước & phụ kiện trực tuyến**: Đặt nước bù khoáng, cầu lông, quấn cán và yêu cầu giao ra tận sân hoặc nhận tại quầy.
-- **Tối ưu Mobile-First**: Vuốt ngang mượt mà, cột tên sân ghim cố định (`sticky`), thanh điều hướng đáy dạng App tiện lợi.
-
-### 2. Phân hệ Quản trị viên (Admin Workspace)
-- **Sơ đồ 4 sân trực quan**:
-  - Sân 1 & Sân 2: Sân thảm xanh BWF.
-  - Sân 3 & Sân 4: Sân thảm xám cao cấp.
-  - Đồng hồ đếm giờ đang chơi theo thời gian thực (*Live Elapsed Timer*).
-  - Thêm dịch vụ nước uống, cầu lông trực tiếp vào hóa đơn của từng sân.
-- **Bán hàng POS tại quầy**: Tìm kiếm sản phẩm, danh mục nước / quấn cán / ống cầu, giỏ hàng, in hóa đơn thanh toán tiền mặt & chuyển khoản QR.
-- **Lịch đặt toàn hệ thống**: Bộ lọc theo sân, ngày, trạng thái, check-in và hủy lịch đặt.
-- **Báo cáo doanh thu**: Biểu đồ Chart.js doanh thu theo khung giờ, tỉ lệ lấp đầy sân, phương thức thanh toán.
-
----
-
-## 📂 Cấu trúc mã nguồn
-
-```text
-├── index.html          # Bản tổng hợp tự động thích ứng thiết bị (Responsive Master)
-├── pc.html             # Bản chuyên dụng cho máy tính / laptop (Widescreen Dashboard)
-├── mobile.html         # Bản chuyên dụng cho điện thoại smartphone (Mobile-First Web App)
-├── GEMINI.md           # Quy chuẩn lập trình Frontend & UI/UX (Coding Standards)
-├── .gitignore          # Cấu hình bỏ qua các tệp không cần thiết
-└── tools_and_scripts/  # Bộ công cụ xây dựng, kiểm tra và bảo trì mã nguồn
+```sh
+npm ci
+npm run check
+npm start
 ```
 
----
+Mở http://127.0.0.1:3000. Cần áp dụng database migration và tạo tài khoản quản trị trước khi ghi dữ liệu. Xem [hướng dẫn triển khai và đối chiếu dữ liệu cũ](DEPLOYMENT.md).
 
-## 🚀 Hướng dẫn sử dụng nhanh
+## Mã nguồn
 
-1. Tải về hoặc clone repository:
-   ```bash
-   git clone https://github.com/hoangkttn711/websitequanlycaulong.git
-   ```
-2. Mở trực tiếp `index.html`, `pc.html` hoặc `mobile.html` trên bất kỳ trình duyệt web nào (Chrome, Safari, Edge, Firefox).
-3. **Đăng nhập Quản lý (Admin)**:
-   - Tài khoản: `admin`
-   - Mật khẩu: `admin`
+- `templates/`: giao diện index/PC/mobile, không chứa bản sao logic.
+- `tools_and_scripts/app_core.js`: quy tắc ngày giờ, giá, tồn kho và escape HTML.
+- `tools_and_scripts/app_logic.js`: hiển thị và xử lý giao diện.
+- `tools_and_scripts/cloud_module.js`: Auth, RPC, đối chiếu revision, retry và rollback.
+- `tools_and_scripts/build.js`: build tái lập được, tạo `public/` và cập nhật ba HTML gốc.
+- `supabase_schema.sql`: schema khởi tạo, không tạo lịch/phiên/hóa đơn mẫu.
+- `migrations/`: nâng cấp database hiện có, giữ lịch sử.
+- `tests/`: kiểm thử quy tắc, phân quyền/database, DOM và máy chủ HTTP.
+- `archive/`: công cụ lịch sử chỉ để tham khảo, không chạy hoặc xuất bản.
 
----
+Chỉ `public/` được triển khai. Thư viện JavaScript và Tailwind CSS được đóng gói cục bộ từ phiên bản khóa trong `package-lock.json`. Tài khoản quản trị là email Supabase Auth được cấp `app_metadata.role=admin`; không có mật khẩu mặc định.
 
-## 📐 Tiêu chuẩn kỹ thuật
-- **Ngôn ngữ**: HTML5, Vanilla JavaScript (ES6+), Tailwind CSS 3.4 CDN, Chart.js.
-- **Mã hóa**: Chuẩn UTF-8 Native, không vỡ font tiếng Việt.
-- **Nguyên tắc Responsive**: Tuân thủ nghiêm ngặt theo quy chuẩn trong [`GEMINI.md`](./GEMINI.md).
+[Báo cáo audit ban đầu](REPO_AUDIT.md) mô tả các lỗi trước khi sửa. [Hướng dẫn triển khai](DEPLOYMENT.md) mô tả hành vi mới và phần cần cấu hình trên môi trường thật.

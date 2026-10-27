@@ -20,14 +20,9 @@ CREATE TABLE IF NOT EXISTS public.courts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Khởi tạo dữ liệu mặc định 4 sân (2 Sân Thảm xanh, 2 Sân Thảm xám)
-INSERT INTO public.courts (id, name, zone, mat_color, status, customer, rate_type, hourly_rate, start_time, booked_hours, elapsed_minutes, deposit, items)
-VALUES
-(1, 'Sân 1', 'Sân thảm xanh', 'green', 'active', 'Nhóm Anh Tuấn', 'normal', 60000, '14:00', 1.5, 52, 0, '[{"productId": "p9", "name": "Ống cầu Hải Yến S90", "price": 245000, "qty": 1}, {"productId": "p1", "name": "Nước bù khoáng Revive", "price": 12000, "qty": 4}]'::jsonb),
-(2, 'Sân 2', 'Sân thảm xanh', 'green', 'free', '', 'normal', 60000, '', 1.5, 0, 0, '[]'::jsonb),
-(3, 'Sân 3', 'Sân thảm xám', 'grey', 'active', 'Nhóm Chị Lan', 'normal', 60000, '13:00', 2.0, 80, 0, '[{"productId": "p10", "name": "Cầu lẻ Thành Công 77", "price": 30000, "qty": 3}, {"productId": "p3", "name": "Nước suối Aquafina 500ml", "price": 10000, "qty": 2}]'::jsonb),
-(4, 'Sân 4', 'Sân thảm xám', 'grey', 'reserved', 'Đội Anh Hoàng (17:00 - 19:00)', 'peak', 80000, '17:00', 2.0, 0, 50000, '[]'::jsonb)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.courts(id,name,zone,mat_color) VALUES
+(1,'Sân 1','Sân thảm xanh','green'),(2,'Sân 2','Sân thảm xanh','green'),
+(3,'Sân 3','Sân thảm xám','grey'),(4,'Sân 4','Sân thảm xám','grey') ON CONFLICT DO NOTHING;
 
 -- 2. BẢNG DANH MỤC SẢN PHẨM & DỊCH VỤ POS (PRODUCTS)
 CREATE TABLE IF NOT EXISTS public.products (
@@ -46,19 +41,19 @@ CREATE TABLE IF NOT EXISTS public.products (
 -- Khởi tạo danh mục sản phẩm chuẩn giá mới (Revive 12k, TC77 340k, Cầu lẻ TC77 30k)
 INSERT INTO public.products (id, name, category, unit, cost, price, stock, sold_today, icon)
 VALUES
-('p1', 'Nước bù khoáng Revive', 'drink', 'Chai', 8000, 12000, 64, 18, '🥤'),
-('p2', 'Revive Chanh Muối', 'drink', 'Chai', 8500, 15000, 42, 14, '🍋'),
-('p3', 'Nước suối Aquafina 500ml', 'drink', 'Chai', 4500, 10000, 85, 22, '💧'),
-('p4', 'Bò húc RedBull Thái', 'drink', 'Lon', 12000, 20000, 36, 9, '⚡'),
-('p5', 'Điện giải Pocari Sweat', 'drink', 'Chai', 14000, 22000, 28, 7, '🧊'),
-('p6', 'Quấn cán VS chống trơn', 'grip', 'Cái', 9000, 20000, 12, 16, '🎾'),
-('p7', 'Quấn cán Yonex AC102EX', 'grip', 'Cái', 22000, 35000, 19, 8, '🎗️'),
-('p8', 'Quấn cán vải chống mồ hôi', 'grip', 'Cuộn', 13000, 25000, 24, 5, '🧶'),
-('p9', 'Ống cầu Hải Yến S90 (12 quả)', 'shuttle', 'Ống', 205000, 245000, 9, 6, '🏸'),
-('p10', 'Cầu lẻ Thành Công 77', 'shuttle', 'Quả', 22000, 30000, 45, 19, '🪶'),
-('p11', 'Ống cầu Thành Công 77', 'shuttle', 'Ống', 290000, 340000, 15, 8, '🏸'),
-('p12', 'Thuê vợt Carbon Yonex', 'rental', 'Cây/ca', 0, 30000, 8, 4, '🏸')
-ON CONFLICT (id) DO UPDATE SET price = EXCLUDED.price, name = EXCLUDED.name;
+('p1', 'Nước bù khoáng Revive', 'drink', 'Chai', 8000, 12000, 64, 0, '🥤'),
+('p2', 'Revive Chanh Muối', 'drink', 'Chai', 8500, 15000, 42, 0, '🍋'),
+('p3', 'Nước suối Aquafina 500ml', 'drink', 'Chai', 4500, 10000, 85, 0, '💧'),
+('p4', 'Bò húc RedBull Thái', 'drink', 'Lon', 12000, 20000, 36, 0, '⚡'),
+('p5', 'Điện giải Pocari Sweat', 'drink', 'Chai', 14000, 22000, 28, 0, '🧊'),
+('p6', 'Quấn cán VS chống trơn', 'grip', 'Cái', 9000, 20000, 12, 0, '🎾'),
+('p7', 'Quấn cán Yonex AC102EX', 'grip', 'Cái', 22000, 35000, 19, 0, '🎗️'),
+('p8', 'Quấn cán vải chống mồ hôi', 'grip', 'Cuộn', 13000, 25000, 24, 0, '🧶'),
+('p9', 'Ống cầu Hải Yến S90 (12 quả)', 'shuttle', 'Ống', 205000, 245000, 9, 0, '🏸'),
+('p10', 'Cầu lẻ Thành Công 77', 'shuttle', 'Quả', 22000, 30000, 45, 0, '🪶'),
+('p11', 'Ống cầu Thành Công 77', 'shuttle', 'Ống', 290000, 340000, 15, 0, '🏸'),
+('p12', 'Thuê vợt Carbon Yonex', 'rental', 'Cây/ca', 0, 30000, 8, 0, '🏸')
+ON CONFLICT (id) DO NOTHING;
 
 -- 3. BẢNG ĐẶT SÂN (BOOKINGS)
 CREATE TABLE IF NOT EXISTS public.bookings (
@@ -72,15 +67,6 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     status VARCHAR(50) DEFAULT 'reserved', -- 'reserved', 'checked_in', 'cancelled'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- Khởi tạo vài lịch đặt mẫu
-INSERT INTO public.bookings (id, customer, phone, court_id, slot, type, deposit, status)
-VALUES
-('BK-101', 'Đội Anh Hoàng', '0988.412.889', 4, '17:00 - 19:00', 'Khách vãng lai', 50000, 'reserved'),
-('BK-102', 'CLB Cầu Lông Hà Đông', '0912.678.234', 1, '18:00 - 20:00', 'Cố định tháng', 100000, 'reserved'),
-('BK-103', 'Nhóm Anh Kiên (FPT)', '0979.331.556', 3, '19:00 - 21:00', 'Khách vãng lai', 50000, 'reserved'),
-('BK-106', 'Nhóm Anh Tuấn', '0963.882.110', 1, '14:00 - 16:00', 'Khách vãng lai', 0, 'checked_in')
-ON CONFLICT (id) DO NOTHING;
 
 -- 4. BẢNG HÓA ĐƠN DOANH THU (INVOICES)
 CREATE TABLE IF NOT EXISTS public.invoices (
@@ -98,28 +84,10 @@ CREATE TABLE IF NOT EXISTS public.invoices (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. KÍCH HOẠT REALTIME CHO TẤT CẢ CÁC BẢNG TRÊN SUPABASE
-ALTER PUBLICATION supabase_realtime ADD TABLE public.courts;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.invoices;
-
--- 6. PHÂN QUYỀN BẢO MẬT ROW LEVEL SECURITY (RLS)
+-- All application access is installed by migrations/001_transactional_backend.sql.
+-- No demo bookings, active sessions, or public write policies are created here.
 ALTER TABLE public.courts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
-
--- Cho phép người dùng công khai (khách) ĐỌC sân, sản phẩm
-CREATE POLICY "Public Read Courts" ON public.courts FOR SELECT USING (true);
-CREATE POLICY "Public Read Products" ON public.products FOR SELECT USING (true);
-CREATE POLICY "Public Read Bookings" ON public.bookings FOR SELECT USING (true);
-
--- Cho phép khách đặt sân (INSERT đơn mới)
-CREATE POLICY "Public Insert Bookings" ON public.bookings FOR INSERT WITH CHECK (true);
-
--- Cho phép Admin cập nhật và xóa toàn quyền (dùng anon key hoặc service key)
-CREATE POLICY "Admin Full Access Courts" ON public.courts FOR ALL USING (true);
-CREATE POLICY "Admin Full Access Products" ON public.products FOR ALL USING (true);
-CREATE POLICY "Admin Full Access Bookings" ON public.bookings FOR ALL USING (true);
-CREATE POLICY "Admin Full Access Invoices" ON public.invoices FOR ALL USING (true);
+REVOKE ALL ON public.courts,public.products,public.bookings,public.invoices FROM anon,authenticated;

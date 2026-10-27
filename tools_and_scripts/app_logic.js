@@ -1,76 +1,27 @@
 
     (function () {
-      const STORAGE_KEY = 'smashcourt_pro_state_v5';
+      const Core = globalThis.SmashCourtCore;
+      const STORAGE_KEY = 'smashcourt_pro_state_v6';
 
       // Time & Pricing Helpers:
       // Rule 1: 17:00 to 21:00 is 80,000đ/h; all other hours are 60,000đ/h.
-      function timeToMinutes(tStr) {
-        if (!tStr || typeof tStr !== 'string') return 18 * 60;
-        const parts = tStr.trim().split(':');
-        const h = parseInt(parts[0], 10) || 0;
-        const m = parseInt(parts[1], 10) || 0;
-        return h * 60 + m;
-      }
-
-      function minutesToTime(mins) {
-        const clamped = Math.max(5 * 60, Math.min(23 * 60, mins));
-        const h = Math.floor(clamped / 60);
-        const m = clamped % 60;
-        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-      }
-
-      function calculateTimeRangeFee(startStr, endStr) {
-        const startMin = timeToMinutes(startStr);
-        let endMin = timeToMinutes(endStr);
-        if (endMin <= startMin) {
-          endMin = startMin + 60;
-        }
-        let normalMins = 0;
-        let eveningMins = 0;
-        for (let m = startMin; m < endMin; m += 15) {
-          // 17:00 is 1020 mins, 21:00 is 1260 mins
-          if (m >= 17 * 60 && m < 21 * 60) {
-            eveningMins += 15;
-          } else {
-            normalMins += 15;
-          }
-        }
-        const normalHours = normalMins / 60;
-        const eveningHours = eveningMins / 60;
-        const totalHours = (endMin - startMin) / 60;
-        const fee = Math.round(normalHours * 60000 + eveningHours * 80000);
-        return {
-          totalHours,
-          normalHours,
-          eveningHours,
-          fee
-        };
-      }
-
-      function parseSlotRange(slotStr) {
-        if (!slotStr || !slotStr.includes('-')) {
-          return { startMin: 18 * 60, endMin: 19.5 * 60 };
-        }
-        const parts = slotStr.split('-').map(s => s.trim());
-        return {
-          startMin: timeToMinutes(parts[0]),
-          endMin: timeToMinutes(parts[1])
-        };
-      }
-
+      function timeToMinutes(value) { return value ? Core.minutes(value) : 300; }
+      function minutesToTime(value) { return Core.time(Math.max(300, Math.min(1380, value))); }
+      function calculateTimeRangeFee(start, end) { return Core.fee(start, end); }
+      function parseSlotRange(slot) { return Core.ranges(slot)[0]; }
+      function bookingRanges(booking) { try { return Core.ranges(booking.slot); } catch { return []; } }
+      function selectedDate() { return state.isAdminLoggedIn && state.viewMode === 'admin' ? state.adminScheduleDate || Core.dateKey() : Core.bookingDate(state.customerDay); }
+      function bookingOnDay(booking) { return booking.bookingDate === selectedDate() && ['reserved','checked_in'].includes(booking.status); }
+      function conflicts(booking, start, end) { return bookingOnDay(booking) && bookingRanges(booking).some(r => Core.overlap(r, {startMin:start,endMin:end})); }
       function isTimeOverlapping(startA, endA, startB, endB) {
         return Math.max(startA, startB) < Math.min(endA, endB);
       }
 
       
-      function getCurrentMinutes() {
-        const now = new Date();
-        return now.getHours() * 60 + now.getMinutes();
-      }
-
+      function getCurrentMinutes() { return Core.nowMinutes(); }
       function getFirstSelectableMin(curMin, step = 30) {
         const rounded = Math.ceil(curMin / step) * step;
-        return Math.max(5 * 60, Math.min(22 * 60, rounded));
+        return Math.max(5 * 60, Math.min(23 * 60, rounded));
       }
 
       // Unified Alobo time slots generator (Chuẩn Alobo: Mặc định mỗi cột là 1 giờ: 6h, 7h, 8h... hỗ trợ ca 30p)
@@ -78,7 +29,7 @@
         const step = duration || 30;
         const slots = [];
         const startMin = 5 * 60; // 05:00
-        const endLimit = 22 * 60; // 22:00
+        const endLimit = 23 * 60; // 22:00
         for (let m = startMin; m < endLimit; m += step) {
           const sTime = minutesToTime(m);
           const eTime = minutesToTime(m + step);
@@ -120,7 +71,7 @@
           courtFilter: 'all',
           posCategory: 'all',
           posSearch: '',
-          posTarget: '1',
+          posTarget: 'retail',
           posPaymentMethod: 'cash',
           checkoutPaymentMethod: 'cash',
           invoiceFilter: 'all',
@@ -133,22 +84,7 @@
             { id: 3, name: 'Sân 3', zone: 'Sân thảm xám', matColor: 'grey', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] },
             { id: 4, name: 'Sân 4', zone: 'Sân thảm xám', matColor: 'grey', status: 'free', customer: '', rateType: 'normal', hourlyRate: 60000, startTime: '', bookedHours: 1.5, elapsedMinutes: 0, deposit: 0, items: [] }
           ],
-          products: [
-            { id: 'p1', name: 'Nước bù khoáng Revive', category: 'drink', unit: 'Chai', cost: 8000, price: 12000, stock: 64, soldToday: 0, icon: '🥤' },
-            { id: 'p2', name: 'Revive Chanh Muối', category: 'drink', unit: 'Chai', cost: 8500, price: 15000, stock: 42, soldToday: 0, icon: '🍋' },
-            { id: 'p3', name: 'Nước suối Aquafina 500ml', category: 'drink', unit: 'Chai', cost: 4500, price: 10000, stock: 85, soldToday: 0, icon: '💧' },
-            { id: 'p4', name: 'Bò húc RedBull Thái', category: 'drink', unit: 'Lon', cost: 12000, price: 20000, stock: 36, soldToday: 0, icon: '⚡' },
-            { id: 'p5', name: 'Điện giải Pocari Sweat', category: 'drink', unit: 'Chai', cost: 14000, price: 22000, stock: 28, soldToday: 0, icon: '🧊' },
-            { id: 'p6', name: 'Quấn cán VS chống trơn', category: 'grip', unit: 'Cái', cost: 9000, price: 20000, stock: 12, soldToday: 0, icon: '🎾' },
-            { id: 'p7', name: 'Quấn cán Yonex AC102EX', category: 'grip', unit: 'Cái', cost: 22000, price: 35000, stock: 19, soldToday: 0, icon: '🎗️' },
-            { id: 'p8', name: 'Quấn cán vải chống mồ hôi', category: 'grip', unit: 'Cuộn', cost: 13000, price: 25000, stock: 24, soldToday: 0, icon: '🧶' },
-            { id: 'p9', name: 'Ống cầu Hải Yến S90 (12 quả)', category: 'shuttle', unit: 'Ống', cost: 205000, price: 245000, stock: 9, soldToday: 0, icon: '🏸' },
-            { id: 'p10', name: 'Cầu lẻ Thành Công 77', category: 'shuttle', unit: 'Quả', cost: 22000, price: 30000, stock: 45, soldToday: 0, icon: '🪶' },
-            { id: 'p11', name: 'Ống cầu Thành Công 77', category: 'shuttle', unit: 'Ống', cost: 280000, price: 340000, stock: 18, soldToday: 0, icon: '🏆' },
-            { id: 'p12', name: 'Thuê vợt Carbon Yonex', category: 'rental', unit: 'Buổi', cost: 0, price: 30000, stock: 15, soldToday: 0, icon: '🎾' },
-            { id: 'p13', name: 'Thuê giày cầu lông chuyên dụng', category: 'rental', unit: 'Đôi', cost: 0, price: 30000, stock: 12, soldToday: 0, icon: '👟' },
-            { id: 'p14', name: 'Băng cổ tay chặn mồ hôi', category: 'grip', unit: 'Cái', cost: 15000, price: 30000, stock: 20, soldToday: 0, icon: '💪' }
-          ],
+          products: [],
           bookings: [],
           invoices: []
         };
@@ -159,76 +95,27 @@
       let categoryChartInstance = null;
 
       function loadState() {
-        // Dọn sạch các phiên bản cache cũ khỏi localStorage của trình duyệt
+        const initial = getInitialState();
         try {
-          ['smashcourt_pro_state', 'smashcourt_pro_state_v1', 'smashcourt_pro_state_v2', 'smashcourt_pro_state_v3'].forEach(k => {
-            localStorage.removeItem(k);
-          });
-        } catch (e) {}
-
-        const init = getInitialState();
-        try {
-          const saved = localStorage.getItem(STORAGE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            const merged = Object.assign({}, init, parsed);
-
-            // Xóa sạch các đơn mẫu cũ (BK-101, BK-102...)
-            const mockIds = ['BK-101', 'BK-102', 'BK-103', 'BK-104', 'BK-106', 'BK-107'];
-            if (Array.isArray(merged.bookings)) {
-              merged.bookings = merged.bookings.filter(b => !mockIds.includes(b.id));
-            }
-            if (Array.isArray(merged.invoices)) {
-              merged.invoices = merged.invoices.filter(i => !i.id || !i.id.startsWith('HD-2610-0'));
-            }
-
-            // Ensure essential arrays always exist
-            if (!Array.isArray(merged.courts) || merged.courts.length === 0) merged.courts = init.courts;
-            if (!Array.isArray(merged.products) || merged.products.length === 0) merged.products = init.products;
-            if (!Array.isArray(merged.bookings)) merged.bookings = init.bookings;
-            if (!Array.isArray(merged.invoices)) merged.invoices = init.invoices;
-
-            // TUYỆT ĐỐI KHÔNG TỰ ĐỘNG CHỌN SẢN PHẨM / GIỎ HÀNG / KHUNG GIỜ KHI MỞ WEB
-            // Giỏ hàng và danh sách chọn trước luôn phải TRỐNG 100% để khách tự chọn
-            merged.customerCart = [];
-            merged.customerAddons = {};
-            merged.customerCourtSlots = {};
-            merged.customerSelectedSlots = [];
-            merged.customerSelectedCourtId = null;
-            merged.customerStartTime = '';
-            merged.customerEndTime = '';
-            merged.posCart = [];
-
-            if (!merged.matrixSlotDuration || merged.matrixSlotDuration === 60) {
-              merged.matrixSlotDuration = 30;
-            }
-            if (!merged.customerDay) merged.customerDay = 'today';
-
-            // Đồng bộ giá mới theo yêu cầu: Ống Thành Công 77 340k, Cầu lẻ Thành Công 77 30k, Revive 12k
-            if (Array.isArray(merged.products)) {
-              merged.products.forEach(p => { p.soldToday = 0; });
-              const p1 = merged.products.find(p => p.id === 'p1');
-              if (p1) p1.price = 12000;
-              const p10 = merged.products.find(p => p.id === 'p10');
-              if (p10) { p10.name = 'Cầu lẻ Thành Công 77'; p10.price = 30000; }
-              const p11 = merged.products.find(p => p.id === 'p11');
-              if (p11) { p11.name = 'Ống cầu Thành Công 77'; p11.price = 340000; }
-            }
-
-            return merged;
-          }
-        } catch (err) {
-          // Ignore sandbox storage error
-        }
-        return init;
+          const legacy = localStorage.getItem('smashcourt_pro_state_v5');
+          if (legacy && !localStorage.getItem('smashcourt_legacy_backup')) localStorage.setItem('smashcourt_legacy_backup', legacy);
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+          const keys = ['myDeviceBookingIds','customerTab','customerDay','customerCart','customerAddons','customerCourtSlots','posCart','kpiCollapsed'];
+          for (const key of keys) if (parsed[key] !== undefined) initial[key] = parsed[key];
+          for (const key of ['myDeviceBookingIds','customerCart','posCart']) if (!Array.isArray(initial[key])) initial[key] = [];
+          for (const key of ['customerAddons','customerCourtSlots']) if (!initial[key] || typeof initial[key] !== 'object' || Array.isArray(initial[key])) initial[key] = {};
+        } catch (error) { console.warn('Không đọc được bộ nhớ nháp:', error); }
+        // Business data comes only from the authorized server snapshot. Legacy data is backed up, never filtered/deleted.
+        initial.courts.forEach(c => c.status = 'maintenance');
+        initial.products = [];
+        return initial;
       }
-
       function saveState() {
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch (err) {
-          // Ignore sandbox storage error
-        }
+          const draft = {};
+          for (const key of ['myDeviceBookingIds','customerTab','customerDay','customerCart','customerAddons','customerCourtSlots','posCart','kpiCollapsed']) draft[key] = state[key];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+        } catch (error) { setSyncMessage('Không lưu được bản nháp trên thiết bị. Giữ trang này mở.', true); }
       }
 
       function formatVND(amount) {
@@ -236,12 +123,13 @@
       }
 
       function showToast(message, type) {
+        if (pendingNotices) { pendingNotices.push([message, type]); return; }
         const container = document.getElementById('toast-container');
         if (!container) return;
         const bgClass = type === 'warn' ? 'bg-amber-600' : 'bg-slate-900 border border-emerald-500/40';
         const toast = document.createElement('div');
         toast.className = `${bgClass} text-white px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all duration-300`;
-        toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>${message}</span>`;
+        toast.textContent = message;
         container.appendChild(toast);
         setTimeout(() => {
           toast.style.opacity = '0';
@@ -288,16 +176,16 @@
           .reduce((sum, c) => sum + getCourtCurrentTotal(c), 0);
         document.getElementById('kpi-running-unbilled').textContent = formatVND(runningUnbilled);
 
-        const settledPosRev = state.invoices.reduce((sum, inv) => sum + (inv.posFee || 0), 0);
+        const settledPosRev = state.invoices.filter(inv => Core.invoiceDate(inv) === Core.dateKey()).reduce((sum, inv) => sum + (inv.posFee || 0), 0);
         const activePosRev = state.courts.filter(c => c.status === 'active').reduce((sum, c) => sum + getCourtPosTotal(c), 0);
         const totalSoldItems = state.products.reduce((sum, p) => sum + (p.soldToday || 0), 0);
 
         document.getElementById('kpi-pos-revenue').textContent = formatVND(settledPosRev + activePosRev);
         document.getElementById('kpi-pos-items-sold').textContent = `${totalSoldItems} món đã xuất`;
 
-        const totalSettledRevenue = state.invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+        const totalSettledRevenue = state.invoices.filter(inv => Core.invoiceDate(inv) === Core.dateKey()).reduce((sum, inv) => sum + (inv.total || 0), 0);
         document.getElementById('kpi-total-revenue').textContent = formatVND(totalSettledRevenue);
-        document.getElementById('kpi-invoice-count').textContent = `${state.invoices.length} hóa đơn đã thu`;
+        document.getElementById('kpi-invoice-count').textContent = `${state.invoices.filter(i => Core.invoiceDate(i) === Core.dateKey()).length} hóa đơn hôm nay`;
 
         const lowStockCount = state.products.filter(p => p.stock <= 15 && p.category !== 'rental').length;
         const lowBadge = document.getElementById('badge-low-stock');
@@ -341,7 +229,7 @@
 
           let badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Sân Trống</span>`;
           if (court.status === 'active') {
-            badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>Đang Chơi (${court.elapsedMinutes}p)</span>`;
+            badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>Đang Chơi (${court.startedAt ? Math.max(0, Math.floor((Date.now()-Date.parse(court.startedAt))/60000)) : court.elapsedMinutes}p)</span>`;
           } else if (court.status === 'reserved') {
             badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">Đã Đặt Trước</span>`;
           } else if (court.status === 'maintenance') {
@@ -469,6 +357,8 @@
             optionsHtml += `<option value="${c.id}" ${sel}>🏸 Ghi vào ${c.name} (${c.zone}) — ${c.customer}</option>`;
           });
           targetSelect.innerHTML = optionsHtml;
+          if (state.posTarget !== 'retail' && !activeCourts.some(c => String(c.id) === state.posTarget)) state.posTarget = 'retail';
+          targetSelect.value = state.posTarget;
         }
 
         document.querySelectorAll('.pos-cat-btn').forEach(btn => {
@@ -573,7 +463,8 @@
       // ==================== RENDER VIEW 3: SCHEDULE TIMELINE & BOOKINGS ====================
                   function renderSchedule() {
         const aloboSlots = getAloboSlots(30);
-        const isToday = (!state.customerDay || state.customerDay === 'today');
+        const isToday = selectedDate() === Core.dateKey();
+        document.getElementById('admin-schedule-date').value=selectedDate();
         const currentMin = getCurrentMinutes();
         const firstSelectableMin = getFirstSelectableMin(currentMin, 30);
 
@@ -617,9 +508,8 @@
 
               // Tìm đơn đặt bao phủ khung giờ này
               const booking = state.bookings.find(b => {
-                if (Number(b.courtId) !== court.id || b.status === 'cancelled') return false;
-                const r = parseSlotRange(b.slot);
-                return isTimeOverlapping(slotStartMin, slotEndMin, r.startMin, r.endMin);
+                if (Number(b.courtId) !== court.id || !bookingOnDay(b)) return false;
+                return conflicts(b, slotStartMin, slotEndMin);
               });
 
               // Sân đang có khách đánh (active)
@@ -662,7 +552,7 @@
 
               return `
                 <td class="h-11 sm:h-12 min-w-[56px] sm:min-w-[64px] border-r border-b border-slate-200 ${cellBg} p-0 text-center select-none transition-colors group">
-                  <button type="button" data-admin-quick-slot-court="${court.id}" data-admin-quick-slot-start="${slot.start}" data-admin-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • Bấm để đặt)">
+                  <button type="button" data-quick-slot-court="${court.id}" data-quick-slot-time="${slot.start}" data-quick-slot-end="${slot.end}" class="w-full h-full flex items-center justify-center cursor-pointer" title="${slot.start} - ${slot.end} (${court.name} còn trống • Bấm để đặt)">
                     <span class="${plusColor} text-[11px] font-bold transition-all transform group-hover:scale-125">+</span>
                   </button>
                 </td>
@@ -707,7 +597,7 @@
         const countLabel = document.getElementById('booking-count-label');
         if (countLabel) countLabel.textContent = `${state.bookings.length} lịch đặt`;
         if (bookingsBody) {
-          bookingsBody.innerHTML = state.bookings.map(b => {
+          bookingsBody.innerHTML = state.bookings.filter(b => b.bookingDate === selectedDate() || !b.bookingDate).map(b => {
             const court = state.courts.find(c => c.id === Number(b.courtId));
             const courtName = court ? `${court.name} (${court.zone})` : `Sân ${b.courtId}`;
 
@@ -717,21 +607,21 @@
                 <td class="py-3 px-4 text-slate-600">${b.phone || '—'}</td>
                 <td class="py-3 px-4 font-semibold text-emerald-700">${courtName}</td>
                 <td class="py-3 px-4 font-bold text-slate-800">${b.slot}</td>
-                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[11px] bg-slate-100 font-medium">${b.type === 'fixed' ? 'Khách cố định' : 'Vãng lai'}</span></td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[11px] bg-slate-100 font-medium">${b.type === 'Cố định tháng' ? 'Khách cố định' : 'Vãng lai'}</span></td>
                 <td class="py-3 px-4 text-right font-bold text-emerald-600">${formatVND(b.deposit)}</td>
                 <td class="py-3 px-4">
                   <span class="px-2 py-0.5 rounded text-[11px] font-bold ${b.status === 'checked_in' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                    ${b.status === 'checked_in' ? 'Đang đánh' : 'Đã cọc'}
+                    ${({checked_in:'Đang đánh',reserved:'Chờ nhận',cancelled:'Đã hủy',completed:'Đã xong'})[b.status] || 'Cần kiểm tra'}${!b.bookingDate ? ' • Chưa có ngày' : ''}
                   </span>
                 </td>
                 <td class="py-3 px-4 text-right">
                   <div class="flex items-center justify-end gap-1.5">
-                    ${b.status !== 'checked_in' ? `
-                      <button type="button" data-checkin-booking="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs cursor-pointer">
+                    ${b.status === 'reserved' && b.bookingDate ? `
+                      <button type="button" data-booking-checkin="${b.id}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs cursor-pointer">
                         Nhận Sân
                       </button>
                     ` : ''}
-                    <button type="button" data-cancel-booking="${b.id}" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 font-semibold text-[11px] cursor-pointer">
+                    <button type="button" data-booking-cancel="${b.id}" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 font-semibold text-[11px] cursor-pointer">
                       Hủy
                     </button>
                   </div>
@@ -806,10 +696,10 @@
 
         const tbody = document.getElementById('invoices-table-body');
         if (tbody) {
-          tbody.innerHTML = filteredInvoices.slice().reverse().map(inv => `
+          tbody.innerHTML = filteredInvoices.slice().sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || '')).map(inv => `
             <tr class="hover:bg-slate-50">
               <td class="py-3 px-4 font-mono font-bold text-slate-800">${inv.id}</td>
-              <td class="py-3 px-4 text-slate-500">${inv.time}</td>
+              <td class="py-3 px-4 text-slate-500">${inv.createdAt ? new Date(inv.createdAt).toLocaleString('vi-VN', {timeZone:Core.timezone}) : 'Chưa có ngày'}</td>
               <td class="py-3 px-4">
                 <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold ${inv.type === 'court' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}">
                   ${inv.type === 'court' ? `Thu ${inv.courtName}` : 'Bán lẻ POS'}
@@ -835,22 +725,16 @@
       function renderCharts() {
         if (typeof Chart === 'undefined') return;
 
-        const todayCourtRev = state.invoices.reduce((s, i) => s + (i.courtFee || 0), 0);
-        const todayPosRev = state.invoices.reduce((s, i) => s + (i.posFee || 0), 0);
+        const todayInvoices = state.invoices.filter(inv => Core.invoiceDate(inv) === Core.dateKey());
+        const todayCourtRev = todayInvoices.reduce((s, i) => s + (i.courtFee || 0), 0);
+        const todayPosRev = todayInvoices.reduce((s, i) => s + (i.posFee || 0), 0);
 
         // Tạo 7 ngày gần nhất thực tế (từ 6 ngày trước đến hôm nay)
-        const labels = [];
-        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-        const today = new Date();
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(today);
-          d.setDate(today.getDate() - i);
-          if (i === 0) {
-            labels.push('Hôm nay');
-          } else {
-            labels.push(`${dayNames[d.getDay()]} (${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')})`);
-          }
-        }
+        const labels = Array.from({length:7},(_,index)=> {
+          if(index===6)return 'Hôm nay';
+          const d=new Date(new Date(Core.dateKey()+'T12:00:00+07:00').getTime()-(6-index)*86400000);
+          return new Intl.DateTimeFormat('vi-VN',{timeZone:Core.timezone,weekday:'short',day:'2-digit',month:'2-digit'}).format(d);
+        });
 
         const ctxWeekly = document.getElementById('chart-weekly-revenue');
         if (ctxWeekly) {
@@ -862,13 +746,13 @@
               datasets: [
                 {
                   label: 'Tiền thuê sân',
-                  data: [0, 0, 0, 0, 0, 0, todayCourtRev],
+                  data: weeklyRevenue('courtFee'),
                   backgroundColor: '#059669',
                   borderRadius: 6
                 },
                 {
                   label: 'Doanh thu POS (Nước, Cầu, Quấn cán)',
-                  data: [0, 0, 0, 0, 0, 0, todayPosRev],
+                  data: weeklyRevenue('posFee'),
                   backgroundColor: '#f59e0b',
                   borderRadius: 6
                 }
@@ -896,12 +780,13 @@
         }
 
         // Tính cơ cấu doanh thu thực tế từ invoices
-        const courtShare = todayCourtRev;
+        const courtShare = todayInvoices.reduce((sum,inv)=>sum+netCourtRevenue(inv),0);
         let shuttleShare = 0, drinkShare = 0, gripShare = 0, rentalShare = 0;
-        state.invoices.forEach(inv => {
+        todayInvoices.forEach(inv => {
           (inv.items || []).forEach(it => {
             const p = state.products.find(prod => prod.name === it.name);
-            const lineTotal = (it.price || 0) * (it.qty || 1);
+            if (!it.productId && !it.category) return;
+            const lineTotal = (it.price || 0) * (it.qty || 1) * (inv.total / (inv.courtFee + inv.posFee || 1));
             if (p) {
               if (p.category === 'shuttle') shuttleShare += lineTotal;
               else if (p.category === 'drink') drinkShare += lineTotal;
@@ -952,7 +837,7 @@
         document.getElementById('checkout-modal-subtitle').textContent = `Khách hàng: ${court.customer} • Giờ vào: ${court.startTime}`;
         document.getElementById('checkout-rate-info').textContent = `Đơn giá: ${formatVND(court.hourlyRate)}/giờ (Tối 17h–21h: 80k/h, Giờ khác: 60k/h)`;
         document.getElementById('checkout-hours-input').value = court.bookedHours;
-        document.getElementById('checkout-discount-input').value = court.deposit || 0;
+        document.getElementById('checkout-discount-input').value = 0;
 
         renderCheckoutModalItems();
         document.getElementById('modal-checkout').classList.remove('hidden');
@@ -962,19 +847,21 @@
         const court = state.courts.find(c => c.id === Number(state.activeCheckoutCourtId));
         if (!court) return;
 
-        const hours = parseFloat(document.getElementById('checkout-hours-input').value) || court.bookedHours;
-        court.bookedHours = hours;
-        const discount = parseFloat(document.getElementById('checkout-discount-input').value) || 0;
+        const hours = Number(document.getElementById('checkout-hours-input').value);
+        if (!Number.isFinite(hours) || hours <= 0 || hours > 18) throw new Error('Thời lượng không hợp lệ.');
+        const discount = Core.amount(document.getElementById('checkout-discount-input').value || 0, 'Giảm giá');
 
-        const courtFee = Math.round(hours * court.hourlyRate);
+        const courtFee = checkoutFee(court, hours);
         const posFee = getCourtPosTotal(court);
-        const grandTotal = Math.max(0, courtFee + posFee - discount);
+        const totals = Core.checkoutTotals(courtFee,posFee,discount,court.deposit || 0);
+        const grandTotal=totals.paymentAmount;
 
         document.getElementById('checkout-court-subtotal').textContent = formatVND(courtFee);
         document.getElementById('summary-court-fee').textContent = formatVND(courtFee);
         document.getElementById('summary-pos-fee').textContent = formatVND(posFee);
-        document.getElementById('summary-discount-fee').textContent = '-' + formatVND(discount);
+        document.getElementById('summary-discount-fee').textContent = '-' + formatVND(discount + (court.deposit || 0));
         document.getElementById('summary-grand-total').textContent = formatVND(grandTotal);
+        document.getElementById('summary-refund').textContent=totals.refundAmount?'Cần hoàn lại tiền cọc: '+formatVND(totals.refundAmount):'';
 
         const listEl = document.getElementById('checkout-items-list');
         if (!court.items || court.items.length === 0) {
@@ -997,34 +884,13 @@
         }
       }
 
-      function addProductToCourt(courtId, productId, qtyToAdd) {
+      function addProductToCourt(courtId, productId, delta) {
         const court = state.courts.find(c => c.id === Number(courtId));
-        const prod = state.products.find(p => p.id === productId);
-        if (!court || !prod) return;
-
-        const existing = court.items.find(i => i.productId === productId);
-        if (existing) {
-          existing.qty += qtyToAdd;
-          if (existing.qty <= 0) {
-            court.items = court.items.filter(i => i.productId !== productId);
-          }
-        } else if (qtyToAdd > 0) {
-          court.items.push({
-            productId: prod.id,
-            name: prod.name,
-            price: prod.price,
-            qty: qtyToAdd
-          });
-        }
-
-        if (qtyToAdd > 0 && prod.category !== 'rental') {
-          prod.stock = Math.max(0, prod.stock - qtyToAdd);
-        }
-        prod.soldToday = Math.max(0, (prod.soldToday || 0) + qtyToAdd);
-        saveState();
-        renderAll();
+        const product = state.products.find(p => p.id === productId);
+        if (!court || !product) throw new Error('Không tìm thấy sân hoặc sản phẩm.');
+        Core.adjustItem(court, product, delta);
+        saveState(); renderAll();
       }
-
       // ==================== SWITCH TABS ====================
       function switchTab(tabName) {
         state.activeTab = tabName;
@@ -1115,14 +981,14 @@
         // Đảm bảo giờ bắt đầu không nằm trong quá khứ
         if (isToday && timeToMinutes(state.customerStartTime) < firstSelectableMin) {
           state.customerStartTime = minutesToTime(firstSelectableMin);
-          state.customerEndTime = minutesToTime(Math.min(22 * 60, firstSelectableMin + 60));
+          state.customerEndTime = minutesToTime(Math.min(23 * 60, firstSelectableMin + 60));
         }
 
         const startSelect = document.getElementById('cust-start-time');
         if (startSelect) {
           let startOpts = '';
           const loopStart = isToday ? firstSelectableMin : (5 * 60);
-          for (let m = loopStart; m <= 21 * 60 + 30; m += 30) {
+          for (let m = loopStart; m <= 22 * 60 + 30; m += 30) {
             const t = minutesToTime(m);
             const isEvening = m >= 17 * 60 && m < 21 * 60;
             const sel = t === state.customerStartTime ? 'selected' : '';
@@ -1295,17 +1161,16 @@
 
               // 2. Khung giờ đã có khách đặt / Khóa
               const overlappingBk = state.bookings.find(b => {
-                if (Number(b.courtId) !== court.id || b.status === 'cancelled') return false;
-                const r = parseSlotRange(b.slot);
-                return isTimeOverlapping(slotStartMin, slotEndMin, r.startMin, r.endMin);
+                if (Number(b.courtId) !== court.id || !bookingOnDay(b)) return false;
+                return conflicts(b, slotStartMin, slotEndMin);
               });
-              const isMaint = court.status === 'maintenance';
+              const isMaint = court.status === 'maintenance' || (court.status === 'active' && isToday && slotStartMinSafe(court, typeof slotStartMin === 'undefined' ? startMin : slotStartMin, typeof slotEndMin === 'undefined' ? endMin : slotEndMin));
               const isBooked = Boolean(overlappingBk || isMaint);
 
               if (isBooked) {
                 // Bảo mật tuyệt đối trên giao diện Khách: KHÔNG hiển thị tên khách khác
-                const bkLabel = isMaint ? 'Bảo trì' : '🔒 Đã đặt';
-                const bkTitle = isMaint ? 'Sân đang bảo trì' : 'Khung giờ đã có khách đặt';
+                const bkLabel = court.status === 'maintenance' ? 'Bảo trì' : '🔒 Đã đặt';
+                const bkTitle = court.status === 'maintenance' ? 'Sân đang bảo trì' : 'Khung giờ đã có khách đặt';
 
                 return `
                   <td class="h-10 sm:h-11 min-w-[50px] sm:min-w-[56px] border-r border-b border-slate-200 bg-slate-100 p-0 text-center select-none">
@@ -1322,7 +1187,7 @@
               if (isSlotSelected) {
                 return `
                   <td class="h-10 sm:h-11 min-w-[50px] sm:min-w-[56px] border-r border-b border-emerald-700 bg-emerald-600 p-0 text-center select-none">
-                    <button type="button" data-matrix-slot-court="${court.id}" data-matrix-slot-start="${slot.start}" data-matrix-slot-end="${slot.end}" class="matrix-slot-btn w-full h-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center cursor-pointer select-none transition-colors">
+                    <button type="button" aria-label="${court.name}: ${slot.start} - ${slot.end}" aria-pressed="${isSlotSelected}" data-matrix-slot-court="${court.id}" data-matrix-slot-start="${slot.start}" data-matrix-slot-end="${slot.end}" class="matrix-slot-btn w-full h-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center cursor-pointer select-none transition-colors">
                       <span class="text-xs font-bold">✓</span>
                     </button>
                   </td>
@@ -1332,7 +1197,7 @@
               // 4. Khung giờ còn trống (ô phẳng sạch sẽ, tràn viền, chỉ có đường kẻ lưới phân cách)
               return `
                 <td class="h-10 sm:h-11 min-w-[50px] sm:min-w-[56px] border-r border-b border-slate-200 bg-white p-0 text-center select-none">
-                  <button type="button" data-matrix-slot-court="${court.id}" data-matrix-slot-start="${slot.start}" data-matrix-slot-end="${slot.end}" class="matrix-slot-btn w-full h-full bg-white hover:bg-emerald-50/80 transition-colors flex items-center justify-center cursor-pointer select-none" title="${slot.start} - ${slot.end} (${slot.isPeak ? '80k/h' : '60k/h'})"></button>
+                  <button type="button" aria-label="${court.name}: ${slot.start} - ${slot.end}" aria-pressed="${isSlotSelected}" data-matrix-slot-court="${court.id}" data-matrix-slot-start="${slot.start}" data-matrix-slot-end="${slot.end}" class="matrix-slot-btn w-full h-full bg-white hover:bg-emerald-50/80 transition-colors flex items-center justify-center cursor-pointer select-none" title="${slot.start} - ${slot.end} (${slot.isPeak ? '80k/h' : '60k/h'})"></button>
                 </td>
               `;
             }).join('');
@@ -1462,11 +1327,10 @@
         if (courtPicker) {
           courtPicker.innerHTML = state.courts.map(court => {
             const overlappingBk = state.bookings.find(b => {
-              if (Number(b.courtId) !== court.id || b.status === 'cancelled') return false;
-              const r = parseSlotRange(b.slot);
-              return isTimeOverlapping(startMin, endMin, r.startMin, r.endMin);
+              if (Number(b.courtId) !== court.id || !bookingOnDay(b)) return false;
+              return conflicts(b, startMin, endMin);
             });
-            const isMaint = court.status === 'maintenance';
+            const isMaint = court.status === 'maintenance' || (court.status === 'active' && isToday && slotStartMinSafe(court, typeof slotStartMin === 'undefined' ? startMin : slotStartMin, typeof slotEndMin === 'undefined' ? endMin : slotEndMin));
             const isAvailable = !overlappingBk && !isMaint;
 
             if (isAvailable) freeCount++;
@@ -1572,7 +1436,7 @@
         const myBkList = document.getElementById('cust-my-bookings-list');
         if (myBkList) {
           const myIds = Array.isArray(state.myDeviceBookingIds) ? state.myDeviceBookingIds : [];
-          const myBks = state.bookings.filter(b => myIds.includes(b.id) && b.status !== 'cancelled');
+          const myBks = state.bookings.filter(b => b.isMine && b.status !== 'cancelled');
 
           if (myBks.length === 0) {
             myBkList.innerHTML = `
@@ -1726,33 +1590,13 @@
       }
 
 function updateDynamicDateLabels() {
-        const now = new Date();
-        const d0 = now;
-        const d1 = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        const d2 = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-        const fmt = function (d) {
-          return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
-        };
-        const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-
-        const b0 = document.querySelector('[data-cust-day="today"]');
-        const b1 = document.querySelector('[data-cust-day="tomorrow"]');
-        const b2 = document.querySelector('[data-cust-day="sunday"]');
-
-        if (b0) b0.textContent = 'Hôm nay (' + fmt(d0) + ')';
-        if (b1) b1.textContent = 'Ngày mai (' + fmt(d1) + ')';
-        if (b2) b2.textContent = dayNames[d2.getDay()] + ' (' + fmt(d2) + ')';
-
-        const clubBadge = document.getElementById('cust-club-date-badge');
-        if (clubBadge) {
-          const curDay = state.customerDay || 'today';
-          if (curDay === 'today') {
-            clubBadge.textContent = 'Hôm nay • ' + fmt(d0) + '/' + d0.getFullYear();
-          } else if (curDay === 'tomorrow') {
-            clubBadge.textContent = 'Ngày mai • ' + fmt(d1) + '/' + d1.getFullYear();
-          } else {
-            clubBadge.textContent = dayNames[d2.getDay()] + ' • ' + fmt(d2) + '/' + d2.getFullYear();
-          }
+        const labels = {today:'Hôm nay',tomorrow:'Ngày mai',sunday:null};
+        for(const day of Object.keys(labels)) {
+          const date=Core.bookingDate(day),value=new Date(date+'T12:00:00+07:00');
+          const label=labels[day]||new Intl.DateTimeFormat('vi-VN',{weekday:'long',timeZone:Core.timezone}).format(value);
+          const formatted=date.slice(8,10)+'/'+date.slice(5,7);
+          const button=document.querySelector('[data-cust-day="'+day+'"]');if(button)button.textContent=label+' ('+formatted+')';
+          if((state.customerDay||'today')===day){const badge=document.getElementById('cust-club-date-badge');if(badge)badge.textContent=label+' • '+formatted+'/'+date.slice(0,4);}
         }
       }
 
@@ -1946,18 +1790,59 @@ function updateDynamicDateLabels() {
       function renderAll() {
         updateRoleViewMode();
         renderCustomerPortal();
+        if (!state.isAdminLoggedIn) { clearAdminViews(); return; }
         renderKPIs();
         renderCourts();
         renderPOS();
         renderSchedule();
         renderInventory();
+        renderPendingOrders();
         if (state.activeTab === 'reports') {
           renderReports();
         }
       }
 
       // ==================== EVENT DELEGATION & HANDLERS ====================
-      document.addEventListener('click', function (e) {
+      document.addEventListener('click', async function (e) {
+        const bookingCell = e.target.closest('[data-admin-booking-id]');
+        if (bookingCell) {
+          const id = bookingCell.getAttribute('data-admin-booking-id');
+          const button = document.querySelector('[data-booking-checkin="' + id + '"]');
+          if (button) setTimeout(() => button.click(), 0);
+          else showToast('Lịch này không còn ở trạng thái chờ nhận sân.', 'warn');
+          return;
+        }
+        const exportLegacy=e.target.closest('[data-export-legacy]');
+        if(exportLegacy){
+          if(!state.isAdminLoggedIn)throw new Error('Cần quyền quản trị.');
+          const value=localStorage.getItem('smashcourt_legacy_backup');if(!value)throw new Error('Không có bản sao cũ.');
+          const url=URL.createObjectURL(new Blob([value],{type:'application/json'}));
+          const link=document.createElement('a');link.href=url;link.download='smashcourt-legacy-backup.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return;
+        }
+        const assignDate = e.target.closest('[data-assign-date]');
+        if (assignDate) {
+          const booking=state.bookings.find(b=>b.id===assignDate.getAttribute('data-assign-date'));
+          const date=assignDate.parentElement.querySelector('input[type=date]').value;
+          if(!booking)throw new Error('Không tìm thấy lịch.');
+          validateBooking(booking.courtId,booking.slot,date);
+          const rs=Core.ranges(booking.slot,true);
+          if(rs.length===1){booking.bookingDate=date;booking.slot=Core.time(rs[0].startMin)+' - '+Core.time(rs[0].endMin);}
+          else {booking.status='cancelled';rs.forEach((r,i)=>state.bookings.push({...booking,id:Core.id('BK'),status:'reserved',bookingDate:date,slot:Core.time(r.startMin)+' - '+Core.time(r.endMin),deposit:i===0?booking.deposit:0}));}
+          saveState();renderAll();return;
+        }
+        const recoverCourt = e.target.closest('[data-recover-court]');
+        if(recoverCourt){
+          const court=state.courts.find(c=>c.id===Number(recoverCourt.getAttribute('data-recover-court')));
+          const value=recoverCourt.parentElement.querySelector('input[type=datetime-local]').value;
+          const start=new Date(value+':00+07:00');
+          if(!court||!Number.isFinite(start.getTime())||start.getTime()>Date.now()||Core.dateKey(start)!==Core.dateKey()||Core.nowMinutes(start)<300||Core.nowMinutes(start)>=1380)throw new Error('Nhập giờ vào thực tế trong hôm nay.');
+          court.startedAt=start.toISOString();court.startTime=Core.time(Core.nowMinutes(start));court.sessionId=Core.id('SESSION');court.bookingId=null;
+          saveState();renderAll();return;
+        }
+        const rejectOrder=e.target.closest('[data-reject-order]');
+        if(rejectOrder){await rejectPendingOrder(rejectOrder.getAttribute('data-reject-order'));return;}
+        const acceptOrder = e.target.closest('[data-accept-order]');
+        if (acceptOrder) { await acceptPendingOrder(acceptOrder.getAttribute('data-accept-order')); return; }
         // Open Addon Picker Modal
         const openAddonPickerBtn = e.target.closest('#btn-open-addon-picker');
         if (openAddonPickerBtn) {
@@ -2067,9 +1952,8 @@ function updateDynamicDateLabels() {
 
           // Check if slot is booked
           const isBooked = state.bookings.some(b => {
-            if (Number(b.courtId) !== courtId || b.status === 'cancelled') return false;
-            const r = parseSlotRange(b.slot);
-            return isTimeOverlapping(timeToMinutes(slotStart), timeToMinutes(slotEnd), r.startMin, r.endMin);
+            if (Number(b.courtId) !== courtId || !bookingOnDay(b)) return false;
+            return conflicts(b, timeToMinutes(slotStart), timeToMinutes(slotEnd));
           });
           if (isBooked) {
             showToast('Khung giờ này đã có khách đặt trước!', 'warn');
@@ -2276,37 +2160,16 @@ function updateDynamicDateLabels() {
           return;
         }
 
-        // Reserved Court -> Check in immediately
-        const resCheckinBtn = e.target.closest('[data-court-checkin-res]');
-        if (resCheckinBtn) {
-          const cId = Number(resCheckinBtn.getAttribute('data-court-checkin-res'));
-          const court = state.courts.find(c => c.id === cId);
-          if (court) {
-            court.status = 'active';
-            court.elapsedMinutes = 1;
-            saveState();
-            renderAll();
-            showToast(`Đã nhận ${court.name} cho khách ${court.customer}`);
-          }
+        const reservationAction = e.target.closest('[data-court-checkin-res], [data-court-cancel-res]');
+        if (reservationAction) {
+          const checkin = reservationAction.hasAttribute('data-court-checkin-res');
+          const cId = Number(reservationAction.getAttribute(checkin ? 'data-court-checkin-res' : 'data-court-cancel-res'));
+          const booking = state.bookings.find(b => b.courtId === cId && b.status === 'reserved' && b.bookingDate === Core.dateKey());
+          if (!booking) throw new Error('Không có lịch hôm nay để xử lý.');
+          const button = document.querySelector('[' + (checkin ? 'data-booking-checkin' : 'data-booking-cancel') + '="' + booking.id + '"]');
+          if (button) { setTimeout(() => button.click(), 0); }
           return;
         }
-
-        // Reserved Court -> Cancel reservation
-        const resCancelBtn = e.target.closest('[data-court-cancel-res]');
-        if (resCancelBtn) {
-          const cId = Number(resCancelBtn.getAttribute('data-court-cancel-res'));
-          const court = state.courts.find(c => c.id === cId);
-          if (court) {
-            court.status = 'free';
-            court.customer = '';
-            court.deposit = 0;
-            saveState();
-            renderAll();
-            showToast(`Đã hủy đặt trước và mở trống ${court.name}`, 'warn');
-          }
-          return;
-        }
-
         // Maintenance Court -> Finish Maintenance
         const maintBtn = e.target.closest('[data-court-finish-maint]');
         if (maintBtn) {
@@ -2424,7 +2287,8 @@ function updateDynamicDateLabels() {
         const slotBtn = e.target.closest('[data-quick-slot-court]');
         if (slotBtn) {
           document.getElementById('booking-court').value = slotBtn.getAttribute('data-quick-slot-court');
-          document.getElementById('booking-slot').value = slotBtn.getAttribute('data-quick-slot-time');
+          document.getElementById('booking-slot').value = slotBtn.getAttribute('data-quick-slot-time') + ' - ' + slotBtn.getAttribute('data-quick-slot-end');
+          document.getElementById('booking-date').value = selectedDate();
           document.getElementById('modal-booking').classList.remove('hidden');
           return;
         }
@@ -2435,11 +2299,19 @@ function updateDynamicDateLabels() {
           const bkId = bkCheckin.getAttribute('data-booking-checkin');
           const bk = state.bookings.find(b => b.id === bkId);
           if (bk) {
+            if (bk.status !== 'reserved' || bk.bookingDate !== Core.dateKey()) throw new Error('Chỉ nhận lịch còn hiệu lực trong hôm nay.');
+            const occupied = state.courts.find(c => c.id === Number(bk.courtId));
+            if (!occupied || occupied.status === 'active' || occupied.status === 'maintenance') throw new Error('Sân chưa sẵn sàng.');
             bk.status = 'checked_in';
             const court = state.courts.find(c => c.id === Number(bk.courtId));
             if (court) {
-              const parts = bk.slot.split('-').map(s => s.trim());
-              const calc = calculateTimeRangeFee(parts[0] || '18:00', parts[1] || '20:00');
+              const rs = bookingRanges(bk);
+              if (rs.length !== 1) throw new Error('Nhận từng ca liên tiếp riêng biệt.');
+              const parts = [Core.time(rs[0].startMin),Core.time(rs[0].endMin)];
+              const calc = calculateTimeRangeFee(...parts);
+              court.sessionId = Core.id('SESSION');
+              court.bookingId = bk.id;
+              court.startedAt = new Date().toISOString();
               court.status = 'active';
               court.customer = bk.customer;
               court.startTime = parts[0] || '18:00';
@@ -2459,7 +2331,9 @@ function updateDynamicDateLabels() {
           const bkId = bkCancel.getAttribute('data-booking-cancel');
           const bk = state.bookings.find(b => b.id === bkId);
           if (bk) {
+            if (bk.status !== 'reserved') throw new Error('Chỉ hủy lịch chưa nhận sân.');
             bk.status = 'cancelled';
+            reconcileCourtReservation(Number(bk.courtId));
             saveState();
             renderAll();
             showToast(`Đã hủy lịch đặt của ${bk.customer}`, 'warn');
@@ -2506,9 +2380,10 @@ function updateDynamicDateLabels() {
             document.getElementById('inv-detail-body').innerHTML = `
               <div class="space-y-1">${itemsHtml}</div>
               <div class="pt-2 flex justify-between items-baseline text-sm font-extrabold text-emerald-700">
-                <span>TỔNG THANH TOÁN:</span>
+                <span>TỔNG HÓA ĐƠN:</span>
                 <span>${formatVND(inv.total)}</span>
               </div>
+              <p>Cọc áp dụng: ${formatVND(inv.depositApplied || 0)} • Thu thêm: ${formatVND(inv.paymentAmount ?? inv.total)} • Hoàn cọc: ${formatVND(inv.refundAmount || 0)}</p>
             `;
             document.getElementById('modal-invoice-detail').classList.remove('hidden');
           }
@@ -2578,19 +2453,20 @@ function updateDynamicDateLabels() {
             const prod = state.products.find(p => p.id === item.productId);
             if (prod) {
               total += prod.price * item.qty;
-              if (prod.category !== 'rental') {
-                prod.stock = Math.max(0, prod.stock - item.qty);
-              }
+              if (!Number.isInteger(item.qty) || item.qty < 1 || prod.stock < item.qty) throw new Error('Không đủ tồn kho: ' + prod.name);
+              if (prod.category === 'rental') throw new Error('Ghi dịch vụ thuê vào sân để theo dõi hoàn trả.');
+              prod.stock -= item.qty;
               prod.soldToday = (prod.soldToday || 0) + item.qty;
-              invoiceItems.push({ name: prod.name, qty: item.qty, price: prod.price });
+              invoiceItems.push({ productId: prod.id, category: prod.category, name: prod.name, qty: item.qty, price: prod.price });
             }
           });
 
-          const newId = `HD-2610-0${state.invoices.length + 1}`;
-          const nowStr = new Date().toTimeString().slice(0, 5);
+          const newId = Core.id('HD');
+          const nowStr = Core.time(getCurrentMinutes());
           state.invoices.push({
             id: newId,
             time: nowStr,
+            createdAt: new Date().toISOString(),
             type: 'retail',
             courtName: 'Quầy POS',
             customer: 'Khách mua lẻ tại quầy',
@@ -2598,7 +2474,7 @@ function updateDynamicDateLabels() {
             posFee: total,
             discount: 0,
             total: total,
-            paymentMethod: state.posPaymentMethod === 'transfer' ? 'Chuyển khoản QR' : 'Tiền mặt',
+            paymentMethod: state.posPaymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt',
             items: invoiceItems
           });
 
@@ -2624,20 +2500,24 @@ function updateDynamicDateLabels() {
         e.preventDefault();
         const cId = Number(document.getElementById('checkin-court-id').value);
         const court = state.courts.find(c => c.id === cId);
-        if (!court) return;
+        if (!court || court.status !== 'free') throw new Error('Sân không còn trống.');
 
         const name = document.getElementById('checkin-customer-name').value.trim() || 'Khách vãng lai';
         const rateType = document.getElementById('checkin-customer-type').value;
         const duration = parseFloat(document.getElementById('checkin-duration').value) || 1.5;
-        const rateMap = { peak: 80000, normal: 60000 };
+        if (!Number.isFinite(duration) || duration <= 0 || getCurrentMinutes() < 300 || getCurrentMinutes()+duration*60 > 1380) throw new Error('Ca chơi phải nằm trong 05:00–23:00.');
 
         court.status = 'active';
         court.customer = name;
         court.rateType = rateType;
-        court.hourlyRate = rateMap[rateType] || 60000;
+        court.hourlyRate = Math.round(calculateTimeRangeFee(Core.time(getCurrentMinutes()), Core.time(getCurrentMinutes() + duration * 60)).fee / duration);
+        if (state.bookings.some(b => b.courtId === cId && b.bookingDate === Core.dateKey() && ['reserved','checked_in'].includes(b.status) && bookingRanges(b).some(r => Core.overlap(r,{startMin:getCurrentMinutes(),endMin:Math.min(1380,getCurrentMinutes()+duration*60)})))) throw new Error('Ca này trùng lịch đã đặt.');
         court.bookedHours = duration;
-        court.startTime = new Date().toTimeString().slice(0, 5);
-        court.elapsedMinutes = 1;
+        court.startTime = Core.time(getCurrentMinutes());
+        court.startedAt = new Date().toISOString();
+        court.sessionId = Core.id('SESSION');
+        court.bookingId = null;
+        court.elapsedMinutes = 0;
         court.deposit = 0;
         court.items = [];
 
@@ -2663,50 +2543,63 @@ function updateDynamicDateLabels() {
         const court = state.courts.find(c => c.id === Number(state.activeCheckoutCourtId));
         if (!court) return;
 
-        const hours = parseFloat(document.getElementById('checkout-hours-input').value) || court.bookedHours;
-        const discount = parseFloat(document.getElementById('checkout-discount-input').value) || 0;
-        const courtFee = Math.round(hours * court.hourlyRate);
+        const hours = Number(document.getElementById('checkout-hours-input').value);
+        if (!Number.isFinite(hours) || hours <= 0 || hours > 18) throw new Error('Thời lượng không hợp lệ.');
+        const discount = Core.amount(document.getElementById('checkout-discount-input').value || 0, 'Giảm giá');
+        const courtFee = checkoutFee(court, hours);
         const posFee = getCourtPosTotal(court);
-        const grandTotal = Math.max(0, courtFee + posFee - discount);
+        const totals = Core.checkoutTotals(courtFee,posFee,discount,court.deposit || 0);
+        const grandTotal=totals.paymentAmount;
 
         const invoiceItems = [
           { name: `Tiền thuê ${court.name} - ${court.zone} (${hours} giờ)`, qty: 1, price: courtFee }
         ];
         (court.items || []).forEach(it => {
-          invoiceItems.push({ name: it.name, qty: it.qty, price: it.price });
+          invoiceItems.push({ productId: it.productId, category: it.category || state.products.find(p=>p.id===it.productId)?.category, name: it.name, qty: it.qty, price: it.price });
         });
 
-        const newId = `HD-2610-0${state.invoices.length + 1}`;
-        const nowStr = new Date().toTimeString().slice(0, 5);
+        const newId = Core.id('HD');
+        const nowStr = Core.time(getCurrentMinutes());
 
         state.invoices.push({
           id: newId,
           time: nowStr,
+            createdAt: new Date().toISOString(),
           type: 'court',
           courtName: court.name,
           customer: court.customer,
           courtFee: courtFee,
           posFee: posFee,
           discount: discount,
-          total: grandTotal,
-          paymentMethod: state.checkoutPaymentMethod === 'transfer' ? 'Chuyển khoản QR' : 'Tiền mặt',
+          total: totals.total,
+          paymentAmount: grandTotal,
+          depositApplied: totals.depositApplied,
+          refundAmount: totals.refundAmount,
+          sessionId: court.sessionId,
+          paymentMethod: state.checkoutPaymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt',
           items: invoiceItems
         });
 
+        if (court.status !== 'active' || !court.sessionId) throw new Error('Phiên sân đã kết thúc hoặc chưa được nhận.');
+        if (court.bookingId) { const bk = state.bookings.find(b => b.id === court.bookingId); if (bk) bk.status = 'completed'; }
+        for (const item of court.items) { const p = state.products.find(p => p.id === item.productId); if (p?.category === 'rental') p.stock += item.qty; }
         court.status = 'free';
         court.customer = '';
+        court.startedAt = null; court.sessionId = null; court.bookingId = null;
         court.items = [];
         court.elapsedMinutes = 0;
         court.deposit = 0;
+        reconcileCourtReservation(court.id);
 
         document.getElementById('modal-checkout').classList.add('hidden');
         saveState();
         renderAll();
-        showToast(`Đã thu ${formatVND(grandTotal)} và đóng ${court.name} thành công!`);
+        showToast(`Đã thu ${formatVND(grandTotal)}${totals.refundAmount ? ", hoàn cọc " + formatVND(totals.refundAmount) : ""} và đóng ${court.name} thành công!`);
       });
 
       // Open New Booking Modal
       document.getElementById('btn-open-new-booking').addEventListener('click', function () {
+        document.getElementById('booking-date').value = selectedDate();
         document.getElementById('modal-booking').classList.remove('hidden');
       });
 
@@ -2717,10 +2610,13 @@ function updateDynamicDateLabels() {
         const courtId = Number(document.getElementById('booking-court').value);
         const slot = document.getElementById('booking-slot').value.trim();
         const type = document.getElementById('booking-type').value;
-        const deposit = Number(document.getElementById('booking-deposit').value) || 0;
+        const deposit = Core.amount(document.getElementById('booking-deposit').value || 0, 'Cọc đã nhận');
 
+        const bookingDate = document.getElementById('booking-date').value;
+        validateBooking(courtId, slot, bookingDate);
         state.bookings.unshift({
-          id: `BK-${100 + state.bookings.length + 1}`,
+          bookingDate,
+          id: Core.id('BK'),
           customer,
           phone,
           courtId,
@@ -2730,6 +2626,7 @@ function updateDynamicDateLabels() {
           status: 'reserved'
         });
 
+        reconcileCourtReservation(courtId);
         document.getElementById('modal-booking').classList.add('hidden');
         document.getElementById('form-new-booking').reset();
         saveState();
@@ -2747,13 +2644,13 @@ function updateDynamicDateLabels() {
         const name = document.getElementById('prod-name').value.trim();
         const category = document.getElementById('prod-category').value;
         const unit = document.getElementById('prod-unit').value.trim();
-        const cost = Number(document.getElementById('prod-cost').value) || 0;
-        const price = Number(document.getElementById('prod-price').value) || 15000;
-        const stock = Number(document.getElementById('prod-stock').value) || 20;
+        const cost = Core.amount(document.getElementById('prod-cost').value || 0, 'Giá vốn');
+        const price = Core.amount(document.getElementById('prod-price').value || 0, 'Giá bán');
+        const stock = Core.amount(document.getElementById('prod-stock').value || 0, 'Tồn kho');
 
         const iconMap = { drink: '🥤', grip: '🎾', shuttle: '🏸', rental: '👟' };
         state.products.push({
-          id: `p${state.products.length + 1}`,
+          id: Core.id('p'),
           name,
           category,
           unit,
@@ -2773,18 +2670,15 @@ function updateDynamicDateLabels() {
 
       // Reset Demo Data removed
 
-      // Live Clock
+      // Clock uses the same venue timezone as booking and billing.
       setInterval(function () {
-        const now = new Date();
-        const timeStr = now.toTimeString().slice(0, 8);
-        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-        const dayStr = dayNames[now.getDay()];
-        const dateStr = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
-        const clockEl = document.getElementById('live-clock-display');
-        if (clockEl) {
-          clockEl.textContent = timeStr + ' - ' + dayStr + ', ' + dateStr;
-        }
-      }, 1000);
+        const clockEl=document.getElementById('live-clock-display');
+        if(clockEl)clockEl.textContent=new Intl.DateTimeFormat('vi-VN',{dateStyle:'full',timeStyle:'medium',timeZone:Core.timezone}).format(new Date());
+      },1000);
+      document.getElementById('admin-schedule-date').addEventListener('change',function(e){
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))return;
+        state.adminScheduleDate=e.target.value;renderAll();
+      });
 
       // Toggle KPI Shortcut Strip
       document.getElementById('btn-toggle-kpi-strip').addEventListener('click', function () {
@@ -2799,43 +2693,15 @@ function updateDynamicDateLabels() {
         document.getElementById('modal-admin-login').classList.remove('hidden');
       });
 
-      document.getElementById('btn-autofill-admin').addEventListener('click', function () {
-        document.getElementById('admin-username-input').value = 'admin';
-        document.getElementById('admin-password-input').value = 'admin';
-        document.getElementById('admin-login-error').classList.add('hidden');
-      });
-
-      document.getElementById('form-admin-login').addEventListener('submit', function (e) {
+      document.getElementById('form-admin-login').addEventListener('submit', async function (e) {
         e.preventDefault();
-        const user = document.getElementById('admin-username-input').value.trim().toLowerCase();
-        const pass = document.getElementById('admin-password-input').value.trim();
-
-        if (user === 'admin' && pass === 'admin') {
-          state.isAdminLoggedIn = true;
-          state.viewMode = 'admin';
-          document.getElementById('modal-admin-login').classList.add('hidden');
-          saveState();
-          renderAll();
-          showToast('Đăng nhập Quản trị viên (admin) thành công!');
-        } else {
-          document.getElementById('admin-login-error').classList.remove('hidden');
-        }
+        await loginAdmin(document.getElementById('admin-username-input').value.trim(), document.getElementById('admin-password-input').value);
       });
-
       document.getElementById('btn-toggle-customer-preview').addEventListener('click', function () {
-        state.viewMode = state.viewMode === 'admin' ? 'customer' : 'admin';
-        saveState();
-        renderAll();
-        showToast(state.viewMode === 'admin' ? 'Đã chuyển sang trang Quản lý Admin' : 'Đang xem giao diện Khách hàng');
+        if (!state.isAdminLoggedIn) return;
+        state.viewMode = state.viewMode === 'admin' ? 'customer' : 'admin'; renderAll();
       });
-
-      document.getElementById('btn-admin-logout').addEventListener('click', function () {
-        state.isAdminLoggedIn = false;
-        state.viewMode = 'customer';
-        saveState();
-        renderAll();
-        showToast('Đã đăng xuất tài khoản Quản lý');
-      });
+      document.getElementById('btn-admin-logout').addEventListener('click', async function () { await logoutAdmin(); });
 
       // Customer Booking Addon Search Input live update
       const addonSearchEl = document.getElementById('cust-addon-search-input');
@@ -2846,520 +2712,26 @@ function updateDynamicDateLabels() {
         });
       }
 
-      // Customer Flexible Booking Form Submit (Đặt đồng thời nhiều sân)
-      document.getElementById('form-customer-booking').addEventListener('submit', function (e) {
+      document.getElementById('form-customer-booking').addEventListener('submit', async function (e) {
         e.preventDefault();
-        const activeCourtIds = Object.keys(state.customerCourtSlots || {})
-          .filter(cId => Array.isArray(state.customerCourtSlots[cId]) && state.customerCourtSlots[cId].length > 0)
-          .map(Number);
-
-        if (activeCourtIds.length === 0) {
-          showToast('Vui lòng chạm chọn ít nhất 1 sân và khung giờ trên bảng ma trận trước!', 'warn');
-          return;
-        }
-
-        const name = document.getElementById('cust-book-name').value.trim();
-        const phone = document.getElementById('cust-book-phone').value.trim();
-        const bookedCourtNames = [];
-        const newBkIds = [];
-
-        activeCourtIds.forEach(courtId => {
-          const slots = state.customerCourtSlots[courtId] || [];
-          let courtHours = 0;
-          let courtFee = 0;
-          slots.forEach(sKey => {
-            const parts = sKey.split('-').map(s => s.trim());
-            courtHours += (timeToMinutes(parts[1]) - timeToMinutes(parts[0])) / 60;
-            courtFee += calculateTimeRangeFee(parts[0], parts[1]).fee;
-          });
-
-          const isContig = slots.every((sKey, i) => {
-            if (i === 0) return true;
-            return slots[i - 1].split('-')[1].trim() === sKey.split('-')[0].trim();
-          });
-          const slotStr = isContig
-            ? `${slots[0].split('-')[0].trim()} - ${slots[slots.length - 1].split('-')[1].trim()}`
-            : slots.join(', ');
-
-          const newBkId = `BK-${100 + state.bookings.length + 1}`;
-          newBkIds.push(newBkId);
-
-          state.bookings.unshift({
-            id: newBkId,
-            customer: name,
-            phone: phone,
-            courtId: courtId,
-            slot: slotStr,
-            type: 'Khách đặt Online',
-            deposit: 50000,
-            status: 'reserved'
-          });
-
-          const targetCourt = state.courts.find(c => c.id === courtId);
-          if (targetCourt && targetCourt.status === 'free') {
-            targetCourt.status = 'reserved';
-            targetCourt.customer = `${name} (${slotStr})`;
-            targetCourt.startTime = slots[0].split('-')[0].trim();
-            targetCourt.bookedHours = courtHours;
-            targetCourt.hourlyRate = Math.round(courtFee / (courtHours || 1));
-            targetCourt.deposit = 50000;
-          }
-
-          if (targetCourt) {
-            bookedCourtNames.push(targetCourt.name);
-          } else {
-            bookedCourtNames.push(`Sân ${courtId}`);
-          }
-        });
-
-        // Gắn toàn bộ phụ kiện đã chọn vào sân đầu tiên được đặt
-        const firstCourtId = activeCourtIds[0];
-        const addedItemsNames = [];
-        Object.keys(state.customerAddons || {}).forEach(pId => {
-          const qty = state.customerAddons[pId] || 0;
-          if (qty > 0) {
-            addProductToCourt(firstCourtId, pId, qty);
-            const prod = state.products.find(p => p.id === pId);
-            if (prod) addedItemsNames.push(`${prod.name} (x${qty})`);
-          }
-        });
-
-        // Lưu lại mã đơn của thiết bị này để hiển thị phiếu đặt cho khách
-        if (!Array.isArray(state.myDeviceBookingIds)) {
-          state.myDeviceBookingIds = [];
-        }
-        newBkIds.forEach(id => {
-          if (!state.myDeviceBookingIds.includes(id)) {
-            state.myDeviceBookingIds.unshift(id);
-          }
-        });
-
-        // Xóa sạch trạng thái chọn sau khi đặt thành công
-        state.customerCourtSlots = {};
-        state.customerAddons = {};
-        state.customerSelectedCourtId = null;
-        state.customerSelectedSlots = [];
-        state.customerStartTime = '';
-        state.customerEndTime = '';
-
-        // Đồng bộ lên Supabase Realtime
-        if (typeof syncBookingToSupabase === 'function') {
-          activeCourtIds.forEach((cId, idx) => {
-            const bkObj = state.bookings.find(b => b.id === newBkIds[idx]);
-            const cObj = state.courts.find(c => c.id === cId);
-            if (bkObj) syncBookingToSupabase(bkObj, cObj);
-          });
-        }
-
-        document.getElementById('form-customer-booking').reset();
-        saveState();
-        renderAll();
-
-        const addonToastNote = addedItemsNames.length > 0 ? ` (+${addedItemsNames.length} món phụ kiện)` : '';
-        if (activeCourtIds.length === 1) {
-          showToast(`Đặt ${bookedCourtNames[0]} thành công! Mã: ${newBkIds[0]}${addonToastNote}`);
-        } else {
-          showToast(`Đặt thành công ${activeCourtIds.length} sân (${bookedCourtNames.join(', ')})${addonToastNote}!`);
-        }
+        await submitCustomerBooking();
       });
 
-      // Customer Shop Order Submit
-      
       // Nút làm trống giỏ hàng nhanh cho Khách
       const btnClearCustCart = document.getElementById('btn-clear-cust-cart');
       if (btnClearCustCart) {
         btnClearCustCart.addEventListener('click', function () {
           state.customerCart = [];
           saveState();
-          renderCustomerShop();
+          renderCustomerPortal();
           showToast('Đã làm trống giỏ hàng!');
         });
       }
 
-      document.getElementById('btn-cust-submit-order').addEventListener('click', function () {
-        if (!state.customerCart || state.customerCart.length === 0) {
-          showToast('Bạn chưa chọn sản phẩm nào trong giỏ!', 'warn');
-          return;
-        }
-
-        const deliveryTarget = document.getElementById('cust-order-delivery').value;
-        const note = document.getElementById('cust-order-note').value.trim() || 'Khách đặt trên điện thoại';
-
-        if (deliveryTarget === 'retail') {
-          let total = 0;
-          const items = [];
-          state.customerCart.forEach(item => {
-            const prod = state.products.find(p => p.id === item.productId);
-            if (prod) {
-              total += prod.price * item.qty;
-              if (prod.category !== 'rental') prod.stock = Math.max(0, prod.stock - item.qty);
-              prod.soldToday = (prod.soldToday || 0) + item.qty;
-              items.push({ name: prod.name, qty: item.qty, price: prod.price });
-            }
-          });
-          const newId = `HD-2610-0${state.invoices.length + 1}`;
-          state.invoices.push({
-            id: newId,
-            time: new Date().toTimeString().slice(0, 5),
-            type: 'retail',
-            courtName: 'Đặt Online',
-            customer: note,
-            courtFee: 0,
-            posFee: total,
-            discount: 0,
-            total: total,
-            paymentMethod: 'Chuyển khoản QR',
-            items: items
-          });
-          state.customerCart = [];
-          document.getElementById('cust-order-note').value = '';
-          saveState();
-          renderAll();
-          showToast(`Đã gửi đơn hàng (${formatVND(total)}) tới quầy lễ tân!`);
-        } else {
-          const cId = Number(deliveryTarget);
-          state.customerCart.forEach(item => {
-            addProductToCourt(cId, item.productId, item.qty);
-          });
-          state.customerCart = [];
-          document.getElementById('cust-order-note').value = '';
-          saveState();
-          renderAll();
-          showToast(`Đã báo nhân viên mang đồ ra Sân ${cId}!`);
-        }
+      document.getElementById('btn-cust-submit-order').addEventListener('click', async function () {
+        await submitCustomerOrder();
       });
 
-      
-      // ==================== SUPABASE REALTIME SYNC MODULE ====================
-      const SUPABASE_CONFIG = {
-        url: 'https://goxvubxvyrcrjzscftab.supabase.co',
-        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdveHZ1Ynh2eXJjcmp6c2NmdGFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MDk2NDksImV4cCI6MjEwNzk4NTY0OX0.1oV8z5-waRqJ1oSy5z6x9be0zI-UvyKBNjKzeobiJDk'
-      };
 
-      let supabaseClient = null;
-      try {
-        if (window.supabase && typeof window.supabase.createClient === 'function') {
-          supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-          console.log('✓ Supabase Client initialized successfully');
-        }
-      } catch (err) {
-        console.warn('Supabase initialization failed, falling back to local mode:', err);
-      }
-
-      function updateSupabaseBadge(isOnline) {
-        const badge = document.getElementById('supabase-status-badge');
-        if (badge) {
-          badge.classList.remove('hidden');
-          if (isOnline) {
-            badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[10px] sm:text-[11px] font-bold';
-            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span><span>Realtime Cloud</span>';
-          } else {
-            badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px] sm:text-[11px] font-medium';
-            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span>Offline Cache</span>';
-          }
-        }
-      }
-
-      function mapCourtFromDb(c) {
-        return {
-          id: Number(c.id),
-          name: c.name,
-          zone: c.zone,
-          matColor: c.mat_color || c.matColor || 'green',
-          status: c.status || 'free',
-          customer: c.customer || '',
-          rateType: c.rate_type || c.rateType || 'normal',
-          hourlyRate: Number(c.hourly_rate || c.hourlyRate || 60000),
-          startTime: c.start_time || c.startTime || '',
-          bookedHours: Number(c.booked_hours || c.bookedHours || 1.5),
-          elapsedMinutes: Number(c.elapsed_minutes || c.elapsedMinutes || 0),
-          deposit: Number(c.deposit || 0),
-          items: Array.isArray(c.items) ? c.items : []
-        };
-      }
-
-      function mapCourtToDb(c) {
-        return {
-          id: c.id,
-          name: c.name,
-          zone: c.zone,
-          mat_color: c.matColor,
-          status: c.status,
-          customer: c.customer || '',
-          rate_type: c.rateType,
-          hourly_rate: c.hourlyRate,
-          start_time: c.startTime || '',
-          booked_hours: c.bookedHours || 1.5,
-          elapsed_minutes: c.elapsedMinutes || 0,
-          deposit: c.deposit || 0,
-          items: c.items || [],
-          updated_at: new Date().toISOString()
-        };
-      }
-
-      function mapBookingFromDb(b) {
-        return {
-          id: b.id,
-          customer: b.customer,
-          phone: b.phone,
-          courtId: Number(b.court_id || b.courtId),
-          slot: b.slot,
-          type: b.type || 'Khách đặt Online',
-          deposit: Number(b.deposit || 0),
-          status: b.status || 'reserved'
-        };
-      }
-
-      function mapBookingToDb(b) {
-        return {
-          id: b.id,
-          customer: b.customer,
-          phone: b.phone,
-          court_id: Number(b.courtId),
-          slot: b.slot,
-          type: b.type || 'Khách đặt Online',
-          deposit: Number(b.deposit || 0),
-          status: b.status || 'reserved'
-        };
-      }
-
-      function mapProductFromDb(p) {
-        return {
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          unit: p.unit,
-          cost: Number(p.cost || 0),
-          price: Number(p.price || 0),
-          stock: Number(p.stock || 0),
-          soldToday: Number(p.sold_today || p.soldToday || 0),
-          icon: p.icon || '🏸'
-        };
-      }
-
-      function syncBookingToSupabase(bk, targetCourt) {
-        if (!supabaseClient) return;
-        supabaseClient.from('bookings').insert([mapBookingToDb(bk)]).then(res => {
-          if (res.error) console.warn('Supabase booking insert error:', res.error);
-        });
-        if (targetCourt) {
-          supabaseClient.from('courts').update(mapCourtToDb(targetCourt)).eq('id', targetCourt.id).then(res => {
-            if (res.error) console.warn('Supabase court update error:', res.error);
-          });
-        }
-      }
-
-      function syncCourtToSupabase(court) {
-        if (!supabaseClient) return;
-        supabaseClient.from('courts').update(mapCourtToDb(court)).eq('id', court.id).then(res => {
-          if (res.error) console.warn('Supabase court update error:', res.error);
-        });
-      }
-
-      function syncInvoiceToSupabase(inv) {
-        if (!supabaseClient) return;
-        supabaseClient.from('invoices').insert([{
-          id: inv.id,
-          time: inv.time,
-          type: inv.type,
-          court_name: inv.courtName,
-          customer: inv.customer || '',
-          court_fee: inv.courtFee || 0,
-          pos_fee: inv.posFee || 0,
-          discount: inv.discount || 0,
-          total: inv.total || 0,
-          payment_method: inv.paymentMethod || 'Tiền mặt',
-          items: inv.items || []
-        }]).then(res => {
-          if (res.error) console.warn('Supabase invoice insert error:', res.error);
-        });
-      }
-
-      async function syncFromSupabase(isSilent) {
-        if (!supabaseClient) {
-          updateSupabaseBadge(false);
-          return;
-        }
-        try {
-          const [courtsRes, prodsRes, bksRes, invsRes] = await Promise.all([
-            supabaseClient.from('courts').select('*').order('id', { ascending: true }),
-            supabaseClient.from('products').select('*'),
-            supabaseClient.from('bookings').select('*'),
-            supabaseClient.from('invoices').select('*').order('created_at', { ascending: false })
-          ]);
-
-          let hasChanges = false;
-
-          if (bksRes.data) {
-            const mappedBks = bksRes.data.map(mapBookingFromDb);
-            const currentIds = (state.bookings || []).map(b => b.id).sort().join(',');
-            const newIds = mappedBks.map(b => b.id).sort().join(',');
-            if (currentIds !== newIds || JSON.stringify(state.bookings) !== JSON.stringify(mappedBks)) {
-              state.bookings = mappedBks;
-              hasChanges = true;
-            }
-          }
-
-          if (courtsRes.data && courtsRes.data.length > 0) {
-            const mappedCourts = courtsRes.data.map(mapCourtFromDb);
-            if (JSON.stringify(state.courts) !== JSON.stringify(mappedCourts)) {
-              state.courts = mappedCourts;
-              hasChanges = true;
-            }
-          }
-
-          if (prodsRes.data && prodsRes.data.length > 0) {
-            const mappedProds = prodsRes.data.map(mapProductFromDb);
-            if (JSON.stringify(state.products) !== JSON.stringify(mappedProds)) {
-              state.products = mappedProds;
-              hasChanges = true;
-            }
-          }
-
-          if (invsRes.data && invsRes.data.length > 0) {
-            const mappedInvs = invsRes.data.map(i => ({
-              id: i.id,
-              time: i.time,
-              type: i.type,
-              courtName: i.court_name || i.courtName,
-              customer: i.customer,
-              courtFee: Number(i.court_fee || i.courtFee || 0),
-              posFee: Number(i.pos_fee || i.posFee || 0),
-              discount: Number(i.discount || 0),
-              total: Number(i.total || 0),
-              paymentMethod: i.payment_method || i.paymentMethod || 'Tiền mặt',
-              items: Array.isArray(i.items) ? i.items : []
-            }));
-            if (JSON.stringify(state.invoices) !== JSON.stringify(mappedInvs)) {
-              state.invoices = mappedInvs;
-              hasChanges = true;
-            }
-          }
-
-          if (hasChanges) {
-            saveState();
-            renderAll();
-            console.log('🔄 Đã tự động cập nhật dữ liệu mới nhất từ Supabase!');
-          }
-          updateSupabaseBadge(true);
-        } catch (err) {
-          if (!isSilent) console.warn('Supabase sync warning:', err);
-          updateSupabaseBadge(false);
-        }
-      }
-
-      function setupSupabaseRealtime() {
-        if (!supabaseClient) return;
-
-        supabaseClient.channel('smashcourt_realtime_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'courts' }, payload => {
-            console.log('⚡ Realtime Court Change:', payload);
-            if (payload.new && payload.new.id) {
-              const mapped = mapCourtFromDb(payload.new);
-              const idx = state.courts.findIndex(c => c.id === mapped.id);
-              if (idx !== -1) {
-                state.courts[idx] = mapped;
-              }
-              saveState();
-              renderAll();
-            }
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, payload => {
-            console.log('⚡ Realtime Booking Change:', payload);
-            if (payload.eventType === 'INSERT' && payload.new) {
-              const mapped = mapBookingFromDb(payload.new);
-              if (!state.bookings.find(b => b.id === mapped.id)) {
-                state.bookings.unshift(mapped);
-                if (state.isAdminLoggedIn) {
-                  showToast('🔔 Có khách đặt sân mới: ' + mapped.slot);
-                }
-              }
-            } else if (payload.eventType === 'UPDATE' && payload.new) {
-              const mapped = mapBookingFromDb(payload.new);
-              const idx = state.bookings.findIndex(b => b.id === mapped.id);
-              if (idx !== -1) state.bookings[idx] = mapped;
-            } else if (payload.eventType === 'DELETE' && payload.old) {
-              state.bookings = state.bookings.filter(b => b.id !== payload.old.id);
-            }
-            saveState();
-            renderAll();
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, payload => {
-            if (payload.new && payload.new.id) {
-              const mapped = mapProductFromDb(payload.new);
-              const idx = state.products.findIndex(p => p.id === mapped.id);
-              if (idx !== -1) {
-                state.products[idx] = mapped;
-                saveState();
-                renderAll();
-              }
-            }
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, payload => {
-            if (payload.eventType === 'INSERT' && payload.new) {
-              const inv = payload.new;
-              const mapped = {
-                id: inv.id,
-                time: inv.time,
-                type: inv.type,
-                courtName: inv.court_name || inv.courtName,
-                customer: inv.customer,
-                courtFee: Number(inv.court_fee || inv.courtFee || 0),
-                posFee: Number(inv.pos_fee || inv.posFee || 0),
-                discount: Number(inv.discount || 0),
-                total: Number(inv.total || 0),
-                paymentMethod: inv.payment_method || inv.paymentMethod || 'Tiền mặt',
-                items: Array.isArray(inv.items) ? inv.items : []
-              };
-              if (!state.invoices.find(i => i.id === mapped.id)) {
-                state.invoices.unshift(mapped);
-                saveState();
-                renderAll();
-              }
-            }
-          })
-          .subscribe(status => {
-            console.log('⚡ Supabase Realtime Subscription:', status);
-            if (status === 'SUBSCRIBED') {
-              updateSupabaseBadge(true);
-            }
-          });
-      }
-
-      // Initial Render
-      renderAll();
-      setTimeout(function () {
-        scrollToFirstSelectableSlot(false);
-        setupHorizontalScrollInteractions();
-      }, 50);
-
-      // Kích hoạt kết nối và đồng bộ Supabase Realtime
-      if (typeof syncFromSupabase === 'function') {
-        syncFromSupabase();
-      }
-      if (typeof setupSupabaseRealtime === 'function') {
-        setupSupabaseRealtime();
-      }
-
-      // ==================== ROCK-SOLID AUTO-SYNC POLLING (MỖI 3 GIÂY) ====================
-      // Đảm bảo dù mạng yếu hoặc WebSocket bị ngắt thì máy tính & điện thoại LUÔN đồng bộ 100%
-      setInterval(function () {
-        if (typeof syncFromSupabase === 'function' && document.visibilityState !== 'hidden') {
-          syncFromSupabase(true);
-        }
-      }, 3000);
-
-      // Làm tươi ngay lập tức khi người dùng bấm quay lại tab
-      window.addEventListener('focus', function () {
-        if (typeof syncFromSupabase === 'function') {
-          syncFromSupabase(true);
-        }
-      });
-
-      document.addEventListener('visibilitychange', function () {
-        if (!document.hidden && typeof syncFromSupabase === 'function') {
-          syncFromSupabase(true);
-        }
-      });
+      /* CLOUD_MODULE */
     })();
-  

@@ -770,8 +770,10 @@
         const paymentCard = document.getElementById('booking-detail-payment-card');
         paymentCard.className = `rounded-xl border p-3 ${paymentTone}`;
         const checkInButton = document.getElementById('btn-booking-detail-checkin');
-        checkInButton.setAttribute('data-booking-checkin', booking.id);
-        checkInButton.classList.toggle('hidden', booking.status !== 'reserved' || booking.bookingDate !== Core.dateKey());
+        const canCheckIn = booking.status === 'reserved' && booking.bookingDate === Core.dateKey();
+        if (canCheckIn) checkInButton.setAttribute('data-booking-checkin', booking.id);
+        else checkInButton.removeAttribute('data-booking-checkin');
+        checkInButton.classList.toggle('hidden', !canCheckIn);
         document.getElementById('modal-booking-detail').classList.remove('hidden');
       }
 

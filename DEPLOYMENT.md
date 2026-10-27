@@ -26,7 +26,7 @@ set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
 where id = 'THAY-BANG-UUID-TAI-KHOAN';
 ```
 
-4. Đăng xuất/đăng nhập lại để nhận JWT mới. Giao diện không còn tài khoản `admin/admin`. Khách vẫn đặt sân không cần tạo tài khoản; token ngẫu nhiên của thiết bị dùng để bảo vệ lịch riêng.
+4. Đăng xuất/đăng nhập lại để nhận JWT mới. Có thể nhập `admin` thay cho email `hoang.kttn711@gmail.com`, hoặc nhập đầy đủ email quản trị khác. Đây chỉ là tên đăng nhập rút gọn; mật khẩu và quyền vẫn được Supabase Auth kiểm tra. Giao diện không còn mật khẩu mặc định `admin/admin`. Khách vẫn đặt sân không cần tạo tài khoản; token ngẫu nhiên của thiết bị dùng để bảo vệ lịch riêng.
 5. Kiểm tra thủ công một lượt đặt sân → nhận sân → thêm hàng → thanh toán, trên hai thiết bị, trước khi dùng tại quầy.
 6. Xuất bản `public/`, hoặc push thay đổi đã được duyệt lên `main` để GitHub Actions build, test và triển khai Pages. Workflow không tự áp dụng SQL hay cấp quyền Auth.
 

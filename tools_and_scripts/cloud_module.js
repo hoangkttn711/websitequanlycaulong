@@ -132,13 +132,15 @@
           sessionStorage.removeItem('smashcourt_pending_admin_write');
         } catch(error){if(error.code)sessionStorage.removeItem('smashcourt_pending_admin_write');throw error;}
       }
-      async function loginAdmin(email, password) {
+      async function loginAdmin(username, password) {
         if (!supabaseClient) throw new Error('Chưa kết nối được dịch vụ đăng nhập.');
+        const identifier = username.trim();
+        const email = identifier.toLowerCase() === 'admin' ? 'hoang.kttn711@gmail.com' : identifier;
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error || data.user?.app_metadata?.role !== 'admin') {
           await supabaseClient.auth.signOut();
           document.getElementById('admin-login-error').classList.remove('hidden');
-          throw new Error('Email, mật khẩu hoặc quyền quản trị không hợp lệ.');
+          throw new Error('Tài khoản, mật khẩu hoặc quyền quản trị không hợp lệ.');
         }
         state.isAdminLoggedIn = true; state.viewMode = 'admin';
         applySnapshot(await rpc('app_read_state', {p_device_token:deviceToken || ''}));

@@ -13,7 +13,7 @@ async function page(name='index',options={}){
  let server=Object.assign(fixture(),options.snapshot||{}),fail=false;const calls=[];
  if(options.malicious)server.products[0].name='<img src=x onerror="alert(1)">';
  const user={app_metadata:{role:'admin'}};
- w.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:options.admin?{}:null}}),getUser:async()=>({data:{user}}),onAuthStateChange(){},signOut:async()=>({}),signInWithPassword:async()=>({data:{user}})},rpc:async(name,args)=>{
+ w.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:options.admin?{}:null}}),getUser:async()=>({data:{user}}),onAuthStateChange(){},signOut:async()=>({}),signInWithPassword:async(args)=>{calls.push({name:'signInWithPassword',args});return options.loginError?{data:{user:null},error:{message:'Invalid credentials'}}:{data:{user}};}},rpc:async(name,args)=>{
    calls.push({name,args});if(fail)return {error:{message:'Network rejected'}};
    if(options.rpc)return options.rpc(name,args);
    if(name==='app_admin_commit'){
@@ -39,6 +39,30 @@ test('all three pages start, load products, clear carts and expose no default ad
    }finally{p.dom.window.close();}
  }
 });
+test('admin alias uses Supabase password authentication on all pages and still rejects invalid credentials',async()=>{
+ for(const name of ['index','pc','mobile']){
+  const p=await page(name);try{
+   const d=p.w.document;await p.click('#btn-open-admin-login');
+   const username=d.getElementById('admin-username-input');username.value=' ADMIN ';
+   d.getElementById('admin-password-input').value='private-test-password';
+   assert(d.getElementById('form-admin-login').checkValidity());
+   await p.click('#form-admin-login button[type="submit"]');
+   const auth=p.calls.find(c=>c.name==='signInWithPassword');assert(auth);
+   assert.equal(auth.args.email,'hoang.kttn711@gmail.com');assert.equal(auth.args.password,'private-test-password');
+   assert(d.getElementById('modal-admin-login').classList.contains('hidden'));
+  }finally{p.dom.window.close();}
+ }
+ const p=await page('index',{loginError:true});try{
+  await p.click('#btn-open-admin-login');const d=p.w.document;
+  d.getElementById('admin-username-input').value='another-admin@example.com';d.getElementById('admin-password-input').value='incorrect-password';
+  await p.click('#form-admin-login button[type="submit"]');
+  assert.equal(p.calls.find(c=>c.name==='signInWithPassword').args.email,'another-admin@example.com');
+  assert(!d.getElementById('modal-admin-login').classList.contains('hidden'));
+  assert(!d.getElementById('admin-login-error').classList.contains('hidden'));
+  assert(d.getElementById('btn-open-admin-login').classList.contains('hidden')===false);
+ }finally{p.dom.window.close();}
+});
+
 test('persisted names are escaped in generated product HTML',async()=>{
  const p=await page('index',{malicious:true});try{assert.equal(p.w.document.querySelectorAll('#cust-shop-grid img').length,0);assert(p.w.document.getElementById('cust-shop-grid').textContent.includes('<img'));}finally{p.dom.window.close();}
 });

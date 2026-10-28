@@ -79,7 +79,7 @@
           customerAddonCat: 'all',
           customerShopCat: 'all',
           customerCart: [],
-          activeTab: 'courts',
+          activeTab: 'schedule',
           courtFilter: 'all',
           posCategory: 'all',
           posSearch: '',
@@ -219,143 +219,13 @@
       function renderCourts() {
         const grid = document.getElementById('courts-grid');
         if (!grid) return;
-
-        document.querySelectorAll('.court-filter-btn').forEach(btn => {
-          const f = btn.getAttribute('data-court-filter');
-          if (f === state.courtFilter) {
-            btn.className = 'court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-xs transition';
-          } else {
-            btn.className = 'court-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition';
-          }
-        });
-
-        const filtered = state.courts.filter(c => {
-          if (state.courtFilter === 'all') return true;
-          return c.status === state.courtFilter;
-        });
-
-        grid.innerHTML = filtered.map(court => {
-          const posTotal = getCourtPosTotal(court);
-          const courtFee = Math.round(court.bookedHours * court.hourlyRate);
-          const totalBill = getCourtCurrentTotal(court);
-          const itemCount = (court.items || []).reduce((s, i) => s + i.qty, 0);
+        grid.innerHTML = state.courts.map(court => {
           const timing = court.status === 'active' ? courtTiming(court) : null;
-
-          // Visual distinction: Sân 1 & 2 are Sân thảm xanh, Sân 3 & 4 are Sân thảm xám
-          const isGreyMat = court.matColor === 'grey' || court.id >= 3;
-          const surfaceClass = isGreyMat ? 'court-surface-maint' : 'court-surface-active';
-
-          let badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Sân Trống</span>`;
-          if (court.status === 'active') {
-            badgeHtml = timing.waiting
-              ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">Đã nhận · Bắt đầu ${bookingStartTime(timing.booking)}</span>`
-              : `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>Đang Chơi (${timing.elapsedMinutes}p)</span>`;
-          } else if (court.status === 'reserved') {
-            badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">Đã Đặt Trước</span>`;
-          } else if (court.status === 'maintenance') {
-            badgeHtml = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-800">Bảo Trì</span>`;
-          }
-
-          const itemsPreview = (court.items || []).slice(0, 3).map(i => `${i.name.split(' ')[0]} ${i.name.split(' ')[1] || ''} (x${i.qty})`).join(', ');
-
-          return `
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden flex flex-col justify-between transition hover:shadow-md">
-              <div>
-                <div class="${surfaceClass} p-3.5 text-white relative overflow-hidden">
-
-                  <div class="relative z-10 flex items-center justify-between">
-                    <div>
-                      <span class="text-base font-extrabold tracking-tight">${court.name}</span>
-                      <p class="text-[11px] text-white/90 font-semibold">${court.zone}</p>
-                    </div>
-                    ${badgeHtml}
-                  </div>
-                </div>
-
-                <div class="p-4 space-y-3">
-                  ${court.status === 'active' ? `
-                    <div>
-                      <p class="text-xs font-bold text-slate-900 truncate">${court.customer}</p>
-                      <p class="text-[11px] text-slate-500 mt-0.5">${timing.waiting ? 'Bắt đầu theo lịch:' : 'Vào sân:'} <strong>${court.startTime}</strong> • Thời lượng: <strong>${court.bookedHours}h</strong> (${formatVND(court.hourlyRate)}/h)</p>
-                    </div>
-                    <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
-                      <div class="flex justify-between">
-                        <span class="text-slate-500">Tiền giờ sân:</span>
-                        <span class="font-semibold text-slate-800">${formatVND(courtFee)}</span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-500">Nước & Phụ kiện (${itemCount}):</span>
-                        <span class="font-semibold text-amber-700">${formatVND(posTotal)}</span>
-                      </div>
-                      ${court.items.length > 0 ? `<p class="text-[11px] text-slate-500 truncate pt-0.5 border-t border-slate-200/60">${itemsPreview}${court.items.length > 3 ? '...' : ''}</p>` : `<p class="text-[11px] text-slate-400 italic">Chưa gọi nước / cầu</p>`}
-                    </div>
-                    <div class="flex items-baseline justify-between pt-1">
-                      <span class="text-xs font-semibold text-slate-600">Tạm tính:</span>
-                      <span class="text-lg font-extrabold text-emerald-600">${formatVND(totalBill)}</span>
-                    </div>
-                  ` : ''}
-
-                  ${court.status === 'free' ? `
-                    <div class="py-4 text-center space-y-1">
-                      <p class="text-xs font-semibold text-emerald-700">Sân trống sẵn sàng</p>
-                      <p class="text-[11px] text-slate-500">${court.zone}</p>
-                      <p class="text-xs font-bold text-slate-700 pt-1">60.000đ/h • Tối 17h–21h: 80.000đ/h</p>
-                    </div>
-                  ` : ''}
-
-                  ${court.status === 'reserved' ? `
-                    <div class="space-y-2 py-1">
-                      <p class="text-xs font-bold text-slate-900">${court.customer}</p>
-                      <p class="text-[11px] text-slate-500">Giờ đặt: <strong>${court.startTime}</strong> (${court.bookedHours} giờ)</p>
-                      <div class="p-2 rounded-lg bg-amber-50 border border-amber-200/80 flex justify-between text-xs">
-                        <span class="text-amber-800">Đã đặt cọc:</span>
-                        <span class="font-bold text-amber-900">${formatVND(court.deposit)}</span>
-                      </div>
-                    </div>
-                  ` : ''}
-
-                  ${court.status === 'maintenance' ? `
-                    <div class="py-4 text-center space-y-1">
-                      <p class="text-xs font-semibold text-slate-700">${court.customer}</p>
-                      <p class="text-[11px] text-slate-400">Tạm ngưng nhận khách</p>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-
-              <div class="p-3 bg-slate-50 border-t border-slate-200/80 grid grid-cols-2 gap-2">
-                ${court.status === 'active' ? `
-                  <button type="button" data-court-pos="${court.id}" class="py-2 px-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 border border-amber-400/50 font-semibold text-xs transition flex items-center justify-center gap-1">
-                    <span>+ Nước / Cầu</span>
-                  </button>
-                  <button type="button" data-court-checkout="${court.id}" class="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1">
-                    <span>Thanh Toán</span>
-                  </button>
-                ` : ''}
-
-                ${court.status === 'free' ? `
-                  <button type="button" data-court-open="${court.id}" class="col-span-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition">
-                    + Mở Sân Ngay (Check-in)
-                  </button>
-                ` : ''}
-
-                ${court.status === 'reserved' ? `
-                  <button type="button" data-court-checkin-res="${court.id}" class="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition">
-                    Nhận Sân
-                  </button>
-                  <button type="button" data-court-cancel-res="${court.id}" class="py-2 px-2.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 font-semibold text-xs transition">
-                    Hủy Lịch
-                  </button>
-                ` : ''}
-
-                ${court.status === 'maintenance' ? `
-                  <button type="button" data-court-finish-maint="${court.id}" class="col-span-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs transition">
-                    Hoàn Tất Bảo Trì & Mở Lại Sân
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-          `;
+          const next = state.bookings.filter(b => b.courtId === court.id && b.bookingDate === Core.dateKey() && b.status === 'reserved').sort((a,b) => a.slot.localeCompare(b.slot))[0];
+          const status = court.status === 'active' ? (timing.waiting ? 'Đã nhận · bắt đầu ' + bookingStartTime(timing.booking) : 'Đang chơi · ' + timing.elapsedMinutes + ' phút') : court.status === 'maintenance' ? 'Bảo trì' : court.status === 'reserved' ? 'Đã đặt trước' : 'Sẵn sàng';
+          const info = court.status === 'active' ? court.customer + ' · ' + court.startTime : next ? next.customer + ' · ' + next.slot : 'Chưa có lịch tiếp theo hôm nay';
+          const action = court.status === 'active' ? `<button type="button" data-court-pos="${court.id}" class="rounded-lg border border-amber-300 px-2 py-1.5 text-xs font-bold text-amber-800">+ Nước / cầu</button><button type="button" data-court-checkout="${court.id}" class="rounded-lg bg-emerald-600 px-2 py-1.5 text-xs font-bold text-white">Thanh toán</button>` : court.status === 'reserved' ? `<button type="button" data-booking-checkin="${Core.escapeHTML(next?.id || '')}" class="rounded-lg bg-emerald-600 px-2 py-1.5 text-xs font-bold text-white">Nhận sân</button><button type="button" data-booking-cancel="${Core.escapeHTML(next?.id || '')}" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-bold text-rose-700">Hủy lịch</button><button type="button" data-court-open="${court.id}" class="rounded-lg border border-emerald-300 px-2 py-1.5 text-xs font-bold text-emerald-700">Mở sân trống</button>` : court.status === 'free' ? `<button type="button" data-court-open="${court.id}" class="rounded-lg bg-emerald-600 px-2 py-1.5 text-xs font-bold text-white">+ Mở sân ngay</button>` : `<button type="button" data-court-finish-maint="${court.id}" class="rounded-lg bg-slate-700 px-2 py-1.5 text-xs font-bold text-white">Mở lại sân</button>`;
+          return `<div class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2"><div class="flex items-center justify-between gap-2"><strong class="text-sm text-slate-900">${court.name}</strong><span class="text-xs font-bold text-emerald-700">${status}</span></div><p class="text-xs text-slate-600 truncate" title="${Core.escapeHTML(info)}">${Core.escapeHTML(info)}</p><div class="flex flex-wrap gap-2">${action}</div></div>`;
         }).join('');
       }
 
@@ -566,6 +436,12 @@
                   </td>
                 `);
                 slotIndex += colspan;
+                continue;
+              }
+
+              if (isToday && court.status === 'active' && !court.bookingId && slotStartMinSafe(court, slotStartMin, slotEndMin)) {
+                slotCells.push(`<td class="h-11 sm:h-12 border-r border-b border-emerald-500 bg-emerald-600 text-white text-center"><button type="button" data-court-checkout="${court.id}" class="w-full h-full text-[10px] font-bold" title="${Core.escapeHTML(court.customer)} · thanh toán">Đang chơi</button></td>`);
+                slotIndex++;
                 continue;
               }
 
@@ -1128,10 +1004,10 @@
       function switchTab(tabName) {
         state.activeTab = tabName;
         // Auto-collapse the KPI strip when switching to sub-sections on mobile so the screen stays uncluttered
-        if (tabName !== 'courts' && window.innerWidth < 768) {
+        if (tabName !== 'schedule' && window.innerWidth < 768) {
           state.kpiCollapsed = true;
         }
-        const views = ['courts', 'pos', 'schedule', 'inventory', 'reports'];
+        const views = ['pos', 'schedule', 'inventory', 'reports'];
         views.forEach(v => {
           const el = document.getElementById(`view-${v}`);
           if (el) el.classList.toggle('hidden', v !== tabName);
@@ -2315,16 +2191,6 @@ function updateDynamicDateLabels() {
           return;
         }
 
-        const reservationAction = e.target.closest('[data-court-checkin-res], [data-court-cancel-res]');
-        if (reservationAction) {
-          const checkin = reservationAction.hasAttribute('data-court-checkin-res');
-          const cId = Number(reservationAction.getAttribute(checkin ? 'data-court-checkin-res' : 'data-court-cancel-res'));
-          const booking = state.bookings.find(b => b.courtId === cId && b.status === 'reserved' && b.bookingDate === Core.dateKey());
-          if (!booking) throw new Error('Không có lịch hôm nay để xử lý.');
-          const button = document.querySelector('[' + (checkin ? 'data-booking-checkin' : 'data-booking-cancel') + '="' + booking.id + '"]');
-          if (button) { setTimeout(() => button.click(), 0); }
-          return;
-        }
         // Maintenance Court -> Finish Maintenance
         const maintBtn = e.target.closest('[data-court-finish-maint]');
         if (maintBtn) {
@@ -2667,18 +2533,18 @@ function updateDynamicDateLabels() {
         e.preventDefault();
         const cId = Number(document.getElementById('checkin-court-id').value);
         const court = state.courts.find(c => c.id === cId);
-        if (!court || court.status !== 'free') throw new Error('Sân không còn trống.');
+        if (!court || !['free','reserved'].includes(court.status)) throw new Error('Sân không còn trống.');
 
         const name = document.getElementById('checkin-customer-name').value.trim() || 'Khách vãng lai';
         const rateType = document.getElementById('checkin-customer-type').value;
         const duration = parseFloat(document.getElementById('checkin-duration').value) || 1.5;
         if (!Number.isFinite(duration) || duration <= 0 || getCurrentMinutes() < 300 || getCurrentMinutes()+duration*60 > 1380) throw new Error('Ca chơi phải nằm trong 05:00–23:00.');
 
+        if (state.bookings.some(b => b.courtId === cId && b.bookingDate === Core.dateKey() && ['reserved','checked_in'].includes(b.status) && bookingRanges(b).some(r => Core.overlap(r,{startMin:getCurrentMinutes(),endMin:Math.min(1380,getCurrentMinutes()+duration*60)})))) throw new Error('Ca này trùng lịch đã đặt.');
         court.status = 'active';
         court.customer = name;
         court.rateType = rateType;
         court.hourlyRate = Math.round(calculateTimeRangeFee(Core.time(getCurrentMinutes()), Core.time(getCurrentMinutes() + duration * 60)).fee / duration);
-        if (state.bookings.some(b => b.courtId === cId && b.bookingDate === Core.dateKey() && ['reserved','checked_in'].includes(b.status) && bookingRanges(b).some(r => Core.overlap(r,{startMin:getCurrentMinutes(),endMin:Math.min(1380,getCurrentMinutes()+duration*60)})))) throw new Error('Ca này trùng lịch đã đặt.');
         court.bookedHours = duration;
         court.startTime = Core.time(getCurrentMinutes());
         court.startedAt = new Date().toISOString();

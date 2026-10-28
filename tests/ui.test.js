@@ -99,7 +99,7 @@ test('rendered booking check-in, POS, and checkout persist together through real
   await p.click('[data-booking-checkin="BK-lifecycle"]');
   assert.equal((await db.query('SELECT status FROM public.courts WHERE id=1')).rows[0].status,'active');
   assert(p.w.sessionStorage.getItem('smashcourt_pending_admin_write'));
-  await p.click('[data-nav="courts"]'); // First action reconciles the original operation id.
+  await p.click('[data-nav="schedule"]'); // First action reconciles the original operation id.
   assert.equal(p.w.sessionStorage.getItem('smashcourt_pending_admin_write'),null);
   const commits=p.calls.filter(c=>c.name==='app_admin_commit');assert.equal(commits[0].args.p_operation_id,commits[1].args.p_operation_id);
   await p.click('[data-court-pos="1"]');await p.click('[data-add-pos="p1"]');await p.click('#btn-submit-pos-order');
@@ -145,5 +145,14 @@ test('weekly booking refuses a conflicting later occurrence without saving earli
   d.getElementById('booking-customer').value='Hội cầu';d.getElementById('booking-phone').value='0901234567';d.getElementById('booking-slot').value='18:00 - 19:00';
   d.getElementById('form-new-booking').dispatchEvent(new p.w.Event('submit',{bubbles:true,cancelable:true}));await tick();
   assert.equal(p.calls.filter(c=>c.name==='app_admin_commit').length,0);assert(!d.getElementById('modal-booking').classList.contains('hidden'));
+ }finally{p.dom.window.close();}
+});
+
+test('schedule is the admin home and contains court operations',async()=>{
+ const p=await page('index',{admin:true});try {
+  const d=p.w.document;assert(!d.getElementById('view-schedule').classList.contains('hidden'));
+  assert.equal(d.querySelector('.nav-tab-btn[data-nav="courts"]'),null);
+  assert.equal(d.querySelectorAll('#courts-grid [data-court-open]').length,4);
+  await p.click('#courts-grid [data-court-open="1"]');assert(!d.getElementById('modal-checkin').classList.contains('hidden'));
  }finally{p.dom.window.close();}
 });

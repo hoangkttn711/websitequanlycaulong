@@ -124,3 +124,26 @@ test('rendered booking check-in, POS, and checkout persist together through real
   assert(guest.w.document.getElementById('cust-my-bookings-list').textContent.includes('UI Customer'));
  }finally{p?.dom.window.close();guest?.dom.window.close();await db.close();}
 });
+
+test('date picker selects future day and weekly booking validates all dates before committing',async()=>{
+ const day=n=>Core.dateKey(Date.now()+n*86400000);
+ const p=await page('index',{admin:true});try{
+  const d=p.w.document, picker=d.getElementById('cust-date');picker.value=day(40);picker.dispatchEvent(new p.w.Event('change',{bubbles:true}));assert.equal(picker.value,day(40));
+  await p.click('#btn-open-new-booking');
+  d.getElementById('booking-date').value=day(10);d.getElementById('booking-repeat').checked=true;d.getElementById('booking-repeat-until').value=day(24);
+  d.getElementById('booking-customer').value='Hội cầu';d.getElementById('booking-phone').value='0901234567';d.getElementById('booking-slot').value='18:00 - 19:00';d.getElementById('booking-deposit').value='30000';
+  d.getElementById('form-new-booking').dispatchEvent(new p.w.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();
+  const commit=p.calls.filter(c=>c.name==='app_admin_commit').at(-1);assert(commit);const rows=commit.args.p_state.bookings;assert.equal(rows.length,3);assert.deepEqual(Array.from(rows,b=>b.bookingDate),[day(10),day(17),day(24)]);assert.deepEqual(Array.from(rows,b=>b.deposit),[30000,0,0]);
+ }finally{p.dom.window.close();}
+});
+
+test('weekly booking refuses a conflicting later occurrence without saving earlier ones',async()=>{
+ const day=n=>Core.dateKey(Date.now()+n*86400000);
+ const p=await page('index',{admin:true,snapshot:{bookings:[{id:'BK-conflict',court_id:1,booking_date:day(17),slot:'18:00 - 19:00',customer:'Other',phone:'0901234567',status:'reserved',deposit:0}]}});try{
+  const d=p.w.document;await p.click('#btn-open-new-booking');
+  d.getElementById('booking-date').value=day(10);d.getElementById('booking-repeat').checked=true;d.getElementById('booking-repeat-until').value=day(24);
+  d.getElementById('booking-customer').value='Hội cầu';d.getElementById('booking-phone').value='0901234567';d.getElementById('booking-slot').value='18:00 - 19:00';
+  d.getElementById('form-new-booking').dispatchEvent(new p.w.Event('submit',{bubbles:true,cancelable:true}));await tick();
+  assert.equal(p.calls.filter(c=>c.name==='app_admin_commit').length,0);assert(!d.getElementById('modal-booking').classList.contains('hidden'));
+ }finally{p.dom.window.close();}
+});

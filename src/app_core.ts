@@ -10,6 +10,7 @@ function nowMinutes(value: DateInput = new Date()) {
 }
 const dayOffsets: Record<string, number> = { today: 0, tomorrow: 1, sunday: 2 };
 function bookingDate(day: string = 'today', now: DateInput = new Date()) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(day)) return day;
   const d = new Date(dateKey(now) + 'T12:00:00+07:00');
   d.setTime(d.getTime() + (dayOffsets[day] || 0) * 86400000);
   return dateKey(d);

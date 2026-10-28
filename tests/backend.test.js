@@ -67,3 +67,16 @@ test('admin commits reject stale revisions and rollback partial writes',async()=
  assert.equal((await db.query("SELECT stock FROM public.products WHERE id='p1'")).rows[0].stock,0);
  await admin(false);await assert.rejects(call('app_admin_commit',[JSON.stringify(delta),latest.revision,'OP-'+randomUUID()]),/quản trị/);
 });
+
+ test('future date migration exposes occupancy and accepts reservations beyond three days',async()=>{
+  await db.exec(sql('migrations/002_open_booking_dates.sql'));
+  await db.exec(sql('migrations/002_open_booking_dates.sql'));
+  await admin(false);
+  const date=(await db.query(`SELECT ((now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date+40)::text AS d`)).rows[0].d;
+  const booking=request(date,3);
+  await call('app_reserve',[token,JSON.stringify([booking]),'[]','OP-'+randomUUID()]);
+  const state=await call('app_read_state',[other]);
+  const visible=state.bookings.find(b=>b.id===booking.id);
+  assert.equal(visible.booking_date,date); assert.equal(visible.customer,undefined);
+  await assert.rejects(call('app_reserve',[other,JSON.stringify([request(date,3)]),'[]','OP-'+randomUUID()]));
+ });

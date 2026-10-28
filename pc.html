@@ -179,6 +179,7 @@
               <button type="button" data-cust-day="today" class="cust-day-btn px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 text-white shadow-xs whitespace-nowrap">Hôm nay</button>
               <button type="button" data-cust-day="tomorrow" class="cust-day-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">Ngày mai</button>
               <button type="button" data-cust-day="sunday" class="cust-day-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">Chủ nhật</button>
+            <label class="text-xs font-semibold">Chọn ngày <input id="cust-date" type="date" aria-label="Chọn ngày đặt sân" class="border rounded-lg px-2 py-1 text-slate-700" /></label>
             </div>
           </div>
 
@@ -907,6 +908,8 @@
           <div class="space-y-2">
             <label for="checkout-discount-input" class="block text-xs font-semibold text-slate-700">Giảm giá (VNĐ), không gồm tiền cọc:</label>
             <input type="number" id="checkout-discount-input" step="5000" min="0" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold" />
+            <label for="checkout-payment-input" class="block text-xs font-semibold text-slate-700 pt-1">Hoặc nhập số tiền cần thu sau cọc (VNĐ):</label>
+            <input type="number" id="checkout-payment-input" min="0" step="1" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold" />
             <label class="block text-xs font-semibold text-slate-700 pt-1">Phương thức thanh toán:</label>
             <div class="grid grid-cols-2 gap-2">
               <button type="button" data-checkout-pay="cash" class="checkout-pay-btn py-2 px-3 rounded-xl border text-xs font-semibold bg-emerald-50 border-emerald-500 text-emerald-800">💵 Tiền mặt</button>
@@ -955,8 +958,10 @@
         <h3 class="font-bold text-base">Tạo Phiếu Đặt Sân Trước</h3>
         <button type="button" data-close-modal="modal-booking" class="text-slate-400 hover:text-white p-1">✕</button>
       </div>
-      <form id="form-new-booking" class="p-5 space-y-3.5">
+      <form id="form-new-booking" class="p-5 space-y-3.5 overflow-y-auto max-h-[75vh]">
 <label for="booking-date">Ngày đặt sân</label><input type="date" id="booking-date" required class="w-full border rounded-xl px-3 py-2" />
+        <label class="block text-xs font-semibold"><input type="checkbox" id="booking-repeat" /> Lặp lại mỗi tuần cùng thứ, sân và giờ</label>
+        <label for="booking-repeat-until" class="block text-xs font-semibold">Lặp đến ngày (tối đa 1 năm)</label><input type="date" id="booking-repeat-until" class="w-full border rounded-xl px-3 py-2" /><p class="text-xs text-slate-500">Tiền cọc chỉ ghi nhận ở ca đầu tiên. Nếu có ca trùng, toàn bộ lịch sẽ không được tạo.</p>
         <div id="booking-selection-summary" class="hidden rounded-xl border border-sky-200 bg-sky-50 p-3">
           <p class="text-xs font-semibold text-sky-900">Các ca đã chọn</p>
           <p data-booking-selection-text class="mt-1 text-xs text-sky-800"></p>
@@ -1125,6 +1130,8 @@ function nowMinutes(value = new Date()) {
 }
 const dayOffsets = { today: 0, tomorrow: 1, sunday: 2 };
 function bookingDate(day = 'today', now = new Date()) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day))
+        return day;
     const d = new Date(dateKey(now) + 'T12:00:00+07:00');
     d.setTime(d.getTime() + (dayOffsets[day] || 0) * 86400000);
     return dateKey(d);
@@ -2401,6 +2408,7 @@ globalThis.SmashCourtBookingRules = module.exports;
         const posFee = getCourtPosTotal(court);
         const totals = Core.checkoutTotals(courtFee,posFee,discount,court.deposit || 0);
         const grandTotal=totals.paymentAmount;
+        document.getElementById('checkout-payment-input').value = grandTotal;
 
         document.getElementById('checkout-court-subtotal').textContent = formatVND(courtFee);
         document.getElementById('summary-court-fee').textContent = formatVND(courtFee);
@@ -2498,6 +2506,7 @@ globalThis.SmashCourtBookingRules = module.exports;
       }
 
       function renderCustomerPortal() {
+        if (Core.bookingDate(state.customerDay) < Core.dateKey()) { state.customerDay = 'today'; state.customerCourtSlots = {}; state.customerSelectedSlots = []; }
         if (!state.customerTab) state.customerTab = 'book';
         if (state.customerStartTime === undefined) state.customerStartTime = '';
         if (state.customerEndTime === undefined) state.customerEndTime = '';
@@ -2526,7 +2535,7 @@ globalThis.SmashCourtBookingRules = module.exports;
         }
 
         const currentMin = getCurrentMinutes();
-        const isToday = (!state.customerDay || state.customerDay === 'today');
+        const isToday = Core.bookingDate(state.customerDay) === Core.dateKey();
         const firstSelectableMin = isToday ? getFirstSelectableMin(currentMin, state.matrixSlotDuration || 30) : (5 * 60);
 
         // Đảm bảo giờ bắt đầu không nằm trong quá khứ
@@ -2655,6 +2664,9 @@ globalThis.SmashCourtBookingRules = module.exports;
             b.className = 'cust-day-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap';
           }
         });
+        const customerDateInput = document.getElementById('cust-date');
+        customerDateInput.min = Core.dateKey();
+        customerDateInput.value = Core.bookingDate(state.customerDay);
         const aloboSlots = getAloboSlots(state.matrixSlotDuration || 30);
 
         const matrixHeader = document.getElementById('cust-alobo-matrix-header');
@@ -3134,13 +3146,24 @@ function updateDynamicDateLabels() {
           const button=document.querySelector('[data-cust-day="'+day+'"]');if(button)button.textContent=label+' ('+formatted+')';
           if((state.customerDay||'today')===day){const badge=document.getElementById('cust-club-date-badge');if(badge)badge.textContent=label+' • '+formatted+'/'+date.slice(0,4);}
         }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(state.customerDay || '')) {
+          const date = state.customerDay, badge = document.getElementById('cust-club-date-badge');
+          if (badge) badge.textContent = date.split('-').reverse().join('/');
+        }
       }
+
+      document.getElementById('cust-date').addEventListener('change', guarded(function () {
+        if (!this.value || this.value < Core.dateKey()) throw new Error('Ngày đặt không hợp lệ.');
+        state.customerDay = this.value;
+        state.customerCourtSlots = {}; state.customerSelectedSlots = []; state.customerSelectedCourtId = null; state.customerStartTime = ''; state.customerEndTime = '';
+        saveState(); renderCustomerPortal(); scrollToFirstSelectableSlot(true);
+      }));
 
       function scrollToFirstSelectableSlot(smooth = false) {
         const wrapper = document.getElementById('cust-matrix-scroll-wrapper');
         if (!wrapper) return;
 
-        const isToday = (!state.customerDay || state.customerDay === 'today');
+        const isToday = Core.bookingDate(state.customerDay) === Core.dateKey();
         if (!isToday) {
           wrapper.scrollTo({ left: 0, behavior: smooth ? 'smooth' : 'auto' });
           return;
@@ -3394,7 +3417,7 @@ function updateDynamicDateLabels() {
           const slotKey = `${slotStart} - ${slotEnd}`;
 
           // Chặn không cho chọn nếu khung giờ trong ngày đã qua
-          const isToday = (!state.customerDay || state.customerDay === 'today');
+          const isToday = Core.bookingDate(state.customerDay) === Core.dateKey();
           const curM = getCurrentMinutes();
           const slotStartM = timeToMinutes(slotStart);
           if (isToday && slotStartM < curM) {
@@ -4003,6 +4026,17 @@ function updateDynamicDateLabels() {
       document.getElementById('checkout-hours-input').addEventListener('input', guarded(renderCheckoutModalItems));
       document.getElementById('checkout-discount-input').addEventListener('input', guarded(renderCheckoutModalItems));
 
+      document.getElementById('checkout-payment-input').addEventListener('change', guarded(function () {
+        const court = state.courts.find(c => c.id === Number(state.activeCheckoutCourtId));
+        const hours = Number(document.getElementById('checkout-hours-input').value);
+        const gross = checkoutFee(court, hours) + getCourtPosTotal(court);
+        const payment = Core.amount(this.value, 'Số tiền cần thu');
+        const available = Math.max(0, gross - (court.deposit || 0));
+        if (payment > available) throw new Error('Số tiền cần thu không được vượt số tiền sau cọc.');
+        document.getElementById('checkout-discount-input').value = available - payment;
+        renderCheckoutModalItems();
+      }));
+
       // Confirm Court Checkout
       document.getElementById('btn-confirm-court-checkout').addEventListener('click', guarded(function () {
         const court = state.courts.find(c => c.id === Number(state.activeCheckoutCourtId));
@@ -4079,24 +4113,33 @@ function updateDynamicDateLabels() {
         const type = document.getElementById('booking-type').value;
         const deposit = Core.amount(document.getElementById('booking-deposit').value || 0, 'Cọc đã nhận');
         const bookingDate = document.getElementById('booking-date').value;
-        let created;
-        if (isBatch) {
-          created = createBookingsFromScheduleSelection(bookingDate, customer, phone, type, deposit);
-          state.bookings.unshift(...created);
-          for (const id of new Set(created.map(booking => booking.courtId))) reconcileCourtReservation(id);
-        } else {
-          validateBooking(courtId, slot, bookingDate);
-          created = [{ bookingDate, id: Core.id('BK'), customer, phone, courtId, slot, type, deposit, status: 'reserved' }];
-          state.bookings.unshift(created[0]);
-          reconcileCourtReservation(courtId);
+        const repeat = document.getElementById('booking-repeat').checked;
+        const until = document.getElementById('booking-repeat-until').value;
+        if (repeat && (!until || until < bookingDate)) throw new Error('Chọn ngày kết thúc lặp hợp lệ.');
+        const first = new Date(bookingDate + 'T12:00:00+07:00');
+        const last = repeat ? new Date(until + 'T12:00:00+07:00') : first;
+        if (!Number.isFinite(first.getTime()) || !Number.isFinite(last.getTime()) || last - first > 366 * 86400000) throw new Error('Khoảng lặp tối đa 1 năm.');
+        const created = [];
+        for (let t = first.getTime(); t <= last.getTime(); t += 7 * 86400000) {
+          const date = Core.dateKey(t), dayDeposit = created.length ? 0 : deposit;
+          try {
+            if (isBatch) created.push(...createBookingsFromScheduleSelection(date, customer, phone, type, dayDeposit));
+            else {
+              validateBooking(courtId, slot, date);
+              created.push({ bookingDate: date, id: Core.id('BK'), customer, phone, courtId, slot, type: repeat ? 'Cố định tháng' : type, deposit: dayDeposit, status: 'reserved' });
+            }
+          } catch (error) { throw new Error('Ngày ' + date + ': ' + error.message); }
         }
+        if (repeat) created.forEach(booking => { booking.type = 'Cố định tháng'; });
+        state.bookings.unshift(...created);
+        for (const id of new Set(created.map(booking => booking.courtId))) reconcileCourtReservation(id);
         document.getElementById('modal-booking').classList.add('hidden');
         document.getElementById('form-new-booking').reset();
         adminScheduleSelection.clear();
         syncAdminBookingSelectionModal();
         saveState();
         renderAll();
-        showToast(isBatch ? `Đã tạo ${created.length} phiếu từ các ca đã chọn cho ${customer}` : `Đã tạo lịch đặt Sân ${courtId} (${slot}) cho ${customer}`);
+        showToast(`Đã tạo ${created.length} lịch đặt cho ${customer}`);
       }));
 
       // Open New Product Modal

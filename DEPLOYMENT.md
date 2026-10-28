@@ -15,7 +15,7 @@ Mở http://127.0.0.1:3000. Build tạo ba trang và thư viện/CSS cục bộ 
 ## 2. Cập nhật Supabase trước khi xuất bản giao diện
 
 1. Sao lưu database và chọn thời điểm không có giao dịch đang diễn ra. Giữ bản xuất dữ liệu localStorage của các máy thu ngân cũ nếu còn dữ liệu chưa đồng bộ.
-2. Database đã có bốn bảng cũ: chạy **chỉ** `migrations/001_transactional_backend.sql` trong Supabase SQL Editor bằng tài khoản chủ dự án. Database mới: chạy `supabase_schema.sql`, sau đó migration này. Cả hai có thể chạy lại; không cần reset hoặc xóa dữ liệu.
+2. Database đã có bốn bảng cũ: chạy `migrations/001_transactional_backend.sql` rồi `migrations/002_open_booking_dates.sql` trong Supabase SQL Editor bằng tài khoản chủ dự án. Database mới: chạy `supabase_schema.sql`, sau đó chạy lần lượt hai migration này. Cả hai có thể chạy lại; không cần reset hoặc xóa dữ liệu.
 3. Tạo tài khoản quản lý trong Supabase Authentication bằng email và mật khẩu riêng. Tắt public sign-up nếu không sử dụng cho chức năng khác. Cấp quyền qua `app_metadata`, tuyệt đối không dùng `user_metadata` do người dùng tự sửa được:
 
 ```sql

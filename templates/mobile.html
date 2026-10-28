@@ -161,6 +161,7 @@
             <button type="button" data-cust-day="today" class="cust-day-btn px-2 py-1 rounded-lg text-[10px] font-black bg-emerald-600 text-white shadow-xs whitespace-nowrap">Hôm nay</button>
             <button type="button" data-cust-day="tomorrow" class="cust-day-btn px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 whitespace-nowrap">Ngày mai</button>
             <button type="button" data-cust-day="sunday" class="cust-day-btn px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 whitespace-nowrap">Chủ nhật</button>
+            <label class="text-xs font-semibold">Chọn ngày <input id="cust-date" type="date" aria-label="Chọn ngày đặt sân" class="border rounded-lg px-2 py-1 text-slate-700" /></label>
           </div>
         </div>
 
@@ -864,6 +865,8 @@
           <div class="space-y-2">
             <label for="checkout-discount-input" class="block text-xs font-semibold text-slate-700">Giảm giá (VNĐ), không gồm tiền cọc:</label>
             <input type="number" id="checkout-discount-input" step="5000" min="0" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold" />
+            <label for="checkout-payment-input" class="block text-xs font-semibold text-slate-700 pt-1">Hoặc nhập số tiền cần thu sau cọc (VNĐ):</label>
+            <input type="number" id="checkout-payment-input" min="0" step="1" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold" />
             <label class="block text-xs font-semibold text-slate-700 pt-1">Phương thức thanh toán:</label>
             <div class="grid grid-cols-2 gap-2">
               <button type="button" data-checkout-pay="cash" class="checkout-pay-btn py-2 px-3 rounded-xl border text-xs font-semibold bg-emerald-50 border-emerald-500 text-emerald-800">💵 Tiền mặt</button>
@@ -912,8 +915,10 @@
         <h3 class="font-bold text-base">Tạo Phiếu Đặt Sân Trước</h3>
         <button type="button" data-close-modal="modal-booking" class="text-slate-400 hover:text-white p-1">✕</button>
       </div>
-      <form id="form-new-booking" class="p-5 space-y-3.5">
+      <form id="form-new-booking" class="p-5 space-y-3.5 overflow-y-auto max-h-[75vh]">
 <label for="booking-date">Ngày đặt sân</label><input type="date" id="booking-date" required class="w-full border rounded-xl px-3 py-2" />
+        <label class="block text-xs font-semibold"><input type="checkbox" id="booking-repeat" /> Lặp lại mỗi tuần cùng thứ, sân và giờ</label>
+        <label for="booking-repeat-until" class="block text-xs font-semibold">Lặp đến ngày (tối đa 1 năm)</label><input type="date" id="booking-repeat-until" class="w-full border rounded-xl px-3 py-2" /><p class="text-xs text-slate-500">Tiền cọc chỉ ghi nhận ở ca đầu tiên. Nếu có ca trùng, toàn bộ lịch sẽ không được tạo.</p>
         <div id="booking-selection-summary" class="hidden rounded-xl border border-sky-200 bg-sky-50 p-3">
           <p class="text-xs font-semibold text-sky-900">Các ca đã chọn</p>
           <p data-booking-selection-text class="mt-1 text-xs text-sky-800"></p>

@@ -1087,6 +1087,7 @@
         const posFee = getCourtPosTotal(court);
         const totals = Core.checkoutTotals(courtFee,posFee,discount,court.deposit || 0);
         const grandTotal=totals.paymentAmount;
+        document.getElementById('checkout-payment-input').value = grandTotal;
 
         document.getElementById('checkout-court-subtotal').textContent = formatVND(courtFee);
         document.getElementById('summary-court-fee').textContent = formatVND(courtFee);
@@ -1184,6 +1185,7 @@
       }
 
       function renderCustomerPortal() {
+        if (Core.bookingDate(state.customerDay) < Core.dateKey()) { state.customerDay = 'today'; state.customerCourtSlots = {}; state.customerSelectedSlots = []; }
         if (!state.customerTab) state.customerTab = 'book';
         if (state.customerStartTime === undefined) state.customerStartTime = '';
         if (state.customerEndTime === undefined) state.customerEndTime = '';
@@ -1212,7 +1214,7 @@
         }
 
         const currentMin = getCurrentMinutes();
-        const isToday = (!state.customerDay || state.customerDay === 'today');
+        const isToday = Core.bookingDate(state.customerDay) === Core.dateKey();
         const firstSelectableMin = isToday ? getFirstSelectableMin(currentMin, state.matrixSlotDuration || 30) : (5 * 60);
 
         // Đảm bảo giờ bắt đầu không nằm trong quá khứ
@@ -1341,6 +1343,9 @@
             b.className = 'cust-day-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap';
           }
         });
+        const customerDateInput = document.getElementById('cust-date');
+        customerDateInput.min = Core.dateKey();
+        customerDateInput.value = Core.bookingDate(state.customerDay);
         const aloboSlots = getAloboSlots(state.matrixSlotDuration || 30);
 
         const matrixHeader = document.getElementById('cust-alobo-matrix-header');
@@ -1820,13 +1825,24 @@ function updateDynamicDateLabels() {
           const button=document.querySelector('[data-cust-day="'+day+'"]');if(button)button.textContent=label+' ('+formatted+')';
           if((state.customerDay||'today')===day){const badge=document.getElementById('cust-club-date-badge');if(badge)badge.textContent=label+' • '+formatted+'/'+date.slice(0,4);}
         }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(state.customerDay || '')) {
+          const date = state.customerDay, badge = document.getElementById('cust-club-date-badge');
+          if (badge) badge.textContent = date.split('-').reverse().join('/');
+        }
       }
+
+      document.getElementById('cust-date').addEventListener('change', function () {
+        if (!this.value || this.value < Core.dateKey()) throw new Error('Ngày đặt không hợp lệ.');
+        state.customerDay = this.value;
+        state.customerCourtSlots = {}; state.customerSelectedSlots = []; state.customerSelectedCourtId = null; state.customerStartTime = ''; state.customerEndTime = '';
+        saveState(); renderCustomerPortal(); scrollToFirstSelectableSlot(true);
+      });
 
       function scrollToFirstSelectableSlot(smooth = false) {
         const wrapper = document.getElementById('cust-matrix-scroll-wrapper');
         if (!wrapper) return;
 
-        const isToday = (!state.customerDay || state.customerDay === 'today');
+        const isToday = Core.bookingDate(state.customerDay) === Core.dateKey();
         if (!isToday) {
           wrapper.scrollTo({ left: 0, behavior: smooth ? 'smooth' : 'auto' });
           return;
@@ -2080,7 +2096,7 @@ function updateDynamicDateLabels() {
           const slotKey = `${slotStart} - ${slotEnd}`;
 
           // Chặn không cho chọn nếu khung giờ trong ngày đã qua
-          const isToday = (!state.customerDay || state.customerDay === 'today');
+          const isToday = Core.bookingDate(state.customerDay) === Core.dateKey();
           const curM = getCurrentMinutes();
           const slotStartM = timeToMinutes(slotStart);
           if (isToday && slotStartM < curM) {
@@ -2689,6 +2705,17 @@ function updateDynamicDateLabels() {
       document.getElementById('checkout-hours-input').addEventListener('input', renderCheckoutModalItems);
       document.getElementById('checkout-discount-input').addEventListener('input', renderCheckoutModalItems);
 
+      document.getElementById('checkout-payment-input').addEventListener('change', function () {
+        const court = state.courts.find(c => c.id === Number(state.activeCheckoutCourtId));
+        const hours = Number(document.getElementById('checkout-hours-input').value);
+        const gross = checkoutFee(court, hours) + getCourtPosTotal(court);
+        const payment = Core.amount(this.value, 'Số tiền cần thu');
+        const available = Math.max(0, gross - (court.deposit || 0));
+        if (payment > available) throw new Error('Số tiền cần thu không được vượt số tiền sau cọc.');
+        document.getElementById('checkout-discount-input').value = available - payment;
+        renderCheckoutModalItems();
+      });
+
       // Confirm Court Checkout
       document.getElementById('btn-confirm-court-checkout').addEventListener('click', function () {
         const court = state.courts.find(c => c.id === Number(state.activeCheckoutCourtId));
@@ -2765,24 +2792,33 @@ function updateDynamicDateLabels() {
         const type = document.getElementById('booking-type').value;
         const deposit = Core.amount(document.getElementById('booking-deposit').value || 0, 'Cọc đã nhận');
         const bookingDate = document.getElementById('booking-date').value;
-        let created;
-        if (isBatch) {
-          created = createBookingsFromScheduleSelection(bookingDate, customer, phone, type, deposit);
-          state.bookings.unshift(...created);
-          for (const id of new Set(created.map(booking => booking.courtId))) reconcileCourtReservation(id);
-        } else {
-          validateBooking(courtId, slot, bookingDate);
-          created = [{ bookingDate, id: Core.id('BK'), customer, phone, courtId, slot, type, deposit, status: 'reserved' }];
-          state.bookings.unshift(created[0]);
-          reconcileCourtReservation(courtId);
+        const repeat = document.getElementById('booking-repeat').checked;
+        const until = document.getElementById('booking-repeat-until').value;
+        if (repeat && (!until || until < bookingDate)) throw new Error('Chọn ngày kết thúc lặp hợp lệ.');
+        const first = new Date(bookingDate + 'T12:00:00+07:00');
+        const last = repeat ? new Date(until + 'T12:00:00+07:00') : first;
+        if (!Number.isFinite(first.getTime()) || !Number.isFinite(last.getTime()) || last - first > 366 * 86400000) throw new Error('Khoảng lặp tối đa 1 năm.');
+        const created = [];
+        for (let t = first.getTime(); t <= last.getTime(); t += 7 * 86400000) {
+          const date = Core.dateKey(t), dayDeposit = created.length ? 0 : deposit;
+          try {
+            if (isBatch) created.push(...createBookingsFromScheduleSelection(date, customer, phone, type, dayDeposit));
+            else {
+              validateBooking(courtId, slot, date);
+              created.push({ bookingDate: date, id: Core.id('BK'), customer, phone, courtId, slot, type: repeat ? 'Cố định tháng' : type, deposit: dayDeposit, status: 'reserved' });
+            }
+          } catch (error) { throw new Error('Ngày ' + date + ': ' + error.message); }
         }
+        if (repeat) created.forEach(booking => { booking.type = 'Cố định tháng'; });
+        state.bookings.unshift(...created);
+        for (const id of new Set(created.map(booking => booking.courtId))) reconcileCourtReservation(id);
         document.getElementById('modal-booking').classList.add('hidden');
         document.getElementById('form-new-booking').reset();
         adminScheduleSelection.clear();
         syncAdminBookingSelectionModal();
         saveState();
         renderAll();
-        showToast(isBatch ? `Đã tạo ${created.length} phiếu từ các ca đã chọn cho ${customer}` : `Đã tạo lịch đặt Sân ${courtId} (${slot}) cho ${customer}`);
+        showToast(`Đã tạo ${created.length} lịch đặt cho ${customer}`);
       });
 
       // Open New Product Modal
